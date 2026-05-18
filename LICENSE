@@ -1,0 +1,41 @@
+Business Source License 1.1
+
+Parameters
+----------
+
+Licensor:             黎展波 / Atlas Lee
+Licensed Work:        DaoQL-Edu
+                      The Licensed Work is (c) 2026 黎展波 / Atlas Lee
+Additional Use Grant: You may make production use of the Licensed Work,
+                      provided that you do not offer the Licensed Work
+                      as a cloud service to third parties.
+Change Date:          Four years from the date the Licensed Work is published.
+Change License:       Apache License, Version 2.0
+
+For information about alternative licensing arrangements for the Software,
+please contact: 4859345@qq.com
+
+Notice
+------
+
+Business Source License 1.1 (BSL)
+
+Copyright (c) 2026 黎展波 / Atlas Lee <4859345@qq.com>
+
+This software is licensed under the Business Source License, version 1.1.
+You may not use this software except in compliance with the License.
+
+You may obtain a copy of the License at:
+
+    https://mariadb.com/bsl11/
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+The Business Source License (BSL) is a source-available license that
+covers the initial term of a software product's commercial lifecycle.
+After the Change Date, the Licensed Work converts to the Change License
+(Apache 2.0), becoming fully open source.

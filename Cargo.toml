@@ -1,0 +1,41 @@
+[package]
+name = "daoql-edu"
+version = "0.1.0"
+edition = "2021"
+license = "BSL-1.1"
+authors = ["DaoQL Edu Team"]
+description = "DaoQL 教学版 — 多模态数据引擎教育项目"
+repository = "https://github.com/daoql/daoql-edu"
+rust-version = "1.78"
+
+[dependencies]
+uuid = { version = "1", features = ["v7", "serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+postcard = { version = "1", features = ["alloc"] }
+redb = "2"
+toml = "0.8"
+chrono = "0.4"
+memmap2 = "0.9"
+crc32fast = "1.3"
+lz4_flex = "0.11"
+wide = "0.7"
+rayon = "1"
+thiserror = "1"
+
+rand = "0.8"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "benchmark"
+harness = false
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[profile.dev]
+opt-level = 1
