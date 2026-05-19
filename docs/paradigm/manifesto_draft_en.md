@@ -69,12 +69,14 @@ In Library B, the world model does not reside in the librarian's memory, but in 
 
 We propose **Data-First Ontology**: a paradigm that treats the world model as an explicit computational structure rather than an implicit statistical distribution. Specifically, we argue that the world model should be built from six primitives:
 
-- **Being**: an existent unit possessing identity, state, history, and behavior;
-- **Def**: a normative description of an entity's structure, constraints, behavior, and relations, encompassing field definitions, state machines, contracts, etc.; analogous to a **Class** in object-oriented programming;
-- **Relation**: a directed or undirected connection between entities, potentially endowed with temporal windows and cardinality constraints;
-- **Type**: a specialization mechanism cooperating with Def to constitute entity behavior, providing hierarchical classification and inheritance capabilities, and capable of extending or overriding Def's contracts and constraints; analogous to an **Interface** in object-oriented programming, but supporting hierarchical inheritance;
-- **Contract**: executable behavior embedded in the storage system's write path;
-- **Version**: an immutable snapshot of an entity's state at a given moment, forming a historical chain.
+> - **Being**: a state collection endowed with a unique identity, constituting a traceable and evolvable existent unit;
+> - **Def**: the definition of a Being;
+> - **Type**: the classification label of a Being;
+> - **Relation**: the relationship between Beings;
+> - **Version**: the historical state of a Being;
+> - **Contract**: what determines the evolution of a Being.
+
+Together, these six primitives answer six ontological questions: what exists, how it is defined, how it is classified, how it relates to others, how it is traced, and how it evolves. Their fully formalized semantics are elaborated below:
 
 In this framework, **Type and Def cooperate to constitute the complete behavior of an entity**. Def answers "what is this" — it specifies the entity's base fields, constraints, and core contracts (e.g., a "Product" Def defines fields such as name, price, etc.), analogous to a **Class**. Type answers "what category does this belong to, and therefore what additional behavior does it possess" — it is a hierarchical specialization system, such as "Digital Product → Mobile Phone → Huawei Phone," analogous to an **Interface**. Type can inherit behavior from parent types, extend new contracts, or override Def's default behavior. **Field definitions reside in Def; behavior is composed jointly by Def and Type**. An entity simultaneously possesses a Def (Class) and a Type (Interface); the two cooperate rather than being orthogonal.
 
