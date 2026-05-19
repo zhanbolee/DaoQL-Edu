@@ -18,9 +18,9 @@ limitations under the License.
 
 # Data-First Ontology: The World Model Resides in Data, Not in Weights
 
-**Author**: [Author Name]  
+**Author**: Zhanbo Li  
 **Affiliation**: DAO Project[^dao]  
-**Contact**: [Email]  
+**Contact**: zhanbo.lee@hotmail.com  
 **Date**: May 2026
 
 [^dao]: DAO is derived from the Chinese philosophical concept "道" (Tao/Dao), signifying the origin and governing principle of all things. It is unrelated to DAO (Decentralized Autonomous Organization) in the blockchain context.

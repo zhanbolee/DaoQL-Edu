@@ -18,9 +18,9 @@ limitations under the License.
 
 # 数据优先本体论：世界模型在数据中，而非权重里
 
-**作者**：[作者姓名]  
+**作者**：黎展波  
 **单位**：DAO Project[^dao]  
-**联系方式**：[邮箱]  
+**联系方式**：zhanbo.lee@hotmail.com  
 **日期**：2026 年 5 月
 
 [^dao]: DAO 取自中国哲学"道"（Tao/Dao），意为万物之本源与运行规律，与区块链中的 DAO（Decentralized Autonomous Organization）无关。
