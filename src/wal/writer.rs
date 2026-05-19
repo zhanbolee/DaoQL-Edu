@@ -1,4 +1,4 @@
-// Copyright 2026 Zhanbo Li / Atlas Lee <4859345@qq.com>
+// Copyright 2026 Zhanbo Li / Atlas Lee <zhanbo.lee@gmail.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
