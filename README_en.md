@@ -1,5 +1,5 @@
 <!--
-Copyright 2026 Zhanbo Li / Atlas Lee <zhanbo.lee@gmail.com>
+Copyright 2026 Zhanbo Li / Atlas Lee <zhanbo.lee@hotmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -231,7 +231,7 @@ This is an educational project. Issues and PRs are welcome. All code comments an
 License
 
 ```
-Copyright (c) 2026 Zhanbo Li / Atlas Lee <zhanbo.lee@gmail.com>
+Copyright (c) 2026 Zhanbo Li / Atlas Lee <zhanbo.lee@hotmail.com>
 SPDX-License-Identifier: AGPL-3.0-or-later
 
 This program is licensed under the GNU Affero General Public License v3.0 (or later).
@@ -245,4 +245,4 @@ See the [`LICENSE`](./LICENSE) file for details.
 
 Author
 
-**Zhanbo Li / Atlas Lee** <zhanbo.lee@gmail.com>
+**Zhanbo Li / Atlas Lee** <zhanbo.lee@hotmail.com>

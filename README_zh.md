@@ -1,5 +1,5 @@
 <!--
-Copyright 2026 黎展波 / Atlas Lee <zhanbo.lee@gmail.com>
+Copyright 2026 黎展波 / Atlas Lee <zhanbo.lee@hotmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -222,7 +222,7 @@ DaoQL-Edu/
 ## 许可证
 
 ```
-Copyright (c) 2026 黎展波 / Atlas Lee <zhanbo.lee@gmail.com>
+Copyright (c) 2026 黎展波 / Atlas Lee <zhanbo.lee@hotmail.com>
 SPDX-License-Identifier: AGPL-3.0-or-later
 
 本程序在 GNU Affero 通用公共许可证第3版（或更新版本）条款下发布。

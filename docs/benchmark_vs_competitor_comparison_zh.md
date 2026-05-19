@@ -1,5 +1,5 @@
 <!--
-Copyright 2026 黎展波 / Atlas Lee <zhanbo.lee@gmail.com>
+Copyright 2026 黎展波 / Atlas Lee <zhanbo.lee@hotmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
