@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 运行时配置管理
+//! Runtime Configuration Management
 //!
-//! 教学说明：
-//! - 使用 TOML 格式，人类可读、易编辑
-//! - 分层设计：默认值 → 配置文件 → 环境变量
-//! - 教学版简化：不支持热重载
+//! Educational Notes:
+//! - Uses TOML format, human-readable, easy to edit
+//! - Layered design: defaults → config file → env vars
+//! - Edu edition simplification: no hot reload
 
 use std::path::PathBuf;
 
@@ -24,34 +24,34 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::DaoQLError;
 
-/// DaoQL-Edu 全局配置
+/// DaoQL-Edu global configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
-    /// 数据目录路径
+    /// Data directory path
     pub data_dir: PathBuf,
 
-    /// 存储引擎配置
+    /// StorageEngine configuration
     pub storage: StorageConfig,
 
-    /// WAL 配置
+    /// WAL configuration
     pub wal: WalConfig,
 
-    /// 页面缓存配置
+    /// Page cache configuration
     pub page_cache: PageCacheConfig,
 
-    /// 事务配置
+    /// Transaction configuration
     pub transaction: TransactionConfig,
 
-    /// 向量引擎配置
+    /// VectorEngine configuration
     pub vector: VectorConfig,
 
-    /// HNSW 配置
+    /// HNSW configuration
     pub hnsw: HnswConfig,
 
-    /// 列引擎配置
+    /// Column engine configuration
     pub column: ColumnConfig,
 
-    /// 索引持久化级别（benchmark 可设为 false 跳过 fsync）
+    /// Index persistence level (set to false in benchmarks to skip fsync)
     pub index_sync: bool,
 }
 
@@ -72,7 +72,7 @@ impl Default for Config {
 }
 
 impl Config {
-    /// 从 TOML 文件加载配置
+    /// Load configuration from TOML file
     pub fn from_file(path: &PathBuf) -> Result<Self, DaoQLError> {
         let content = std::fs::read_to_string(path)
             .map_err(|e| DaoQLError::Path {
@@ -80,14 +80,14 @@ impl Config {
                 reason: e.to_string(),
             })?;
         let config: Config = toml::from_str(&content)
-            .map_err(|e| DaoQLError::Config(format!("TOML 解析失败: {e}")))?;
+            .map_err(|e| DaoQLError::Config(format!("TOML parse failed: {e}")))?;
         Ok(config)
     }
 
-    /// 保存为 TOML 文件
+    /// Save as TOML file
     pub fn to_file(&self, path: &PathBuf) -> Result<(), DaoQLError> {
         let content = toml::to_string_pretty(self)
-            .map_err(|e| DaoQLError::Config(format!("TOML 序列化失败: {e}")))?;
+            .map_err(|e| DaoQLError::Config(format!("TOML serialization failed: {e}")))?;
         std::fs::write(path, content)
             .map_err(|e| DaoQLError::Path {
                 path: path.clone(),
@@ -96,25 +96,25 @@ impl Config {
         Ok(())
     }
 
-    /// 生成默认配置文件内容
+    /// Generate default configuration file content
     pub fn default_toml() -> String {
         let config = Config::default();
         toml::to_string_pretty(&config).unwrap_or_default()
     }
 }
 
-/// 存储引擎配置
+/// StorageEngine configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageConfig {
-    /// 初始节点文件大小（记录数）
+    /// Initial node file size (record count)
     pub node_initial_capacity: usize,
-    /// 初始边文件大小（记录数）
+    /// Initial edge file size (record count)
     pub edge_initial_capacity: usize,
-    /// 扩容因子（每次扩容的倍数）
+    /// Growth factor (multiplier for each expansion)
     pub grow_factor: f64,
-    /// 最大节点数
+    /// Maximum node count
     pub max_nodes: usize,
-    /// 最大边数
+    /// Maximum edge count
     pub max_edges: usize,
 }
 
@@ -130,16 +130,16 @@ impl Default for StorageConfig {
     }
 }
 
-/// WAL 配置
+/// WAL configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalConfig {
-    /// WAL 文件路径（相对于 data_dir）
+    /// WAL file path (relative to data_dir)
     pub wal_dir: PathBuf,
-    /// 缓冲区大小（字节）
+    /// Buffer size (bytes)
     pub buffer_size: usize,
-    /// 组提交超时（毫秒）
+    /// Group commit timeout (milliseconds)
     pub flush_interval_ms: u64,
-    /// 是否同步刷盘（fsync 每个记录）
+    /// Whether to sync flush (fsync each record)
     pub sync_on_write: bool,
 }
 
@@ -154,14 +154,14 @@ impl Default for WalConfig {
     }
 }
 
-/// 页面缓存配置
+/// Page cache configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PageCacheConfig {
-    /// 总页数
+    /// Total page count
     pub total_pages: usize,
-    /// 页大小（字节）
+    /// Page size (bytes)
     pub page_size: usize,
-    /// 分区数
+    /// Partition count
     pub num_shards: usize,
 }
 
@@ -175,14 +175,14 @@ impl Default for PageCacheConfig {
     }
 }
 
-/// 事务配置
+/// Transaction configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransactionConfig {
-    /// 锁获取超时（毫秒）
+    /// Lock acquisition timeout (milliseconds)
     pub lock_timeout_ms: u64,
-    /// 是否启用死锁检测
+    /// Whether to enable deadlock detection
     pub deadlock_detection: bool,
-    /// 最大活跃事务数
+    /// Maximum active transaction count
     pub max_active_tx: usize,
 }
 
@@ -196,12 +196,12 @@ impl Default for TransactionConfig {
     }
 }
 
-/// 向量引擎配置
+/// VectorEngine configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VectorConfig {
-    /// 默认向量维度
+    /// Default vector dimension
     pub default_dim: usize,
-    /// 距离度量方式
+    /// Distance metric
     pub distance: DistanceMetric,
 }
 
@@ -216,18 +216,18 @@ impl Default for VectorConfig {
 
 pub use crate::vector::distance::DistanceMetric;
 
-/// HNSW 配置
+/// HNSW configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HnswConfig {
-    /// 每层最大出度
+    /// Max out-degree per layer
     pub m: usize,
-    /// 构建时搜索宽度
+    /// Search width during build
     pub ef_construction: usize,
-    /// 查询时搜索宽度
+    /// Search width during query
     pub ef_search: usize,
-    /// 最大元素数
+    /// Maximum element count
     pub max_elements: usize,
-    /// 是否启用量化
+    /// Whether to enable quantization
     pub enable_quantization: bool,
 }
 
@@ -243,14 +243,14 @@ impl Default for HnswConfig {
     }
 }
 
-/// 列引擎配置
+/// Column engine configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColumnConfig {
-    /// Granule 大小（字节）
+    /// Granule size (bytes)
     pub granule_size: usize,
-    /// 是否启用压缩
+    /// Whether to enable compression
     pub enable_compression: bool,
-    /// 压缩级别
+    /// Compression level
     pub compression_level: u32,
 }
 

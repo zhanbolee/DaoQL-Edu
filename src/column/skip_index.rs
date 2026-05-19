@@ -11,25 +11,25 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! Skip Index — Granule 级 min/max 元数据
+//! Skip Index — Granule-level min/max metadata
 //!
-//! 教学说明：
-//! - 每个 Granule（64KB 块）维护 min/max
-//! - 查询时先检查 min/max，不匹配的 Granule 直接跳过
-//! - 这是列式存储的核心优化之一
-//! - 时间复杂度：O(Granule 数) 的剪枝，而非 O(记录数)
+//! Educational Notes:
+//! - each Granule (64KB block) maintains min/max
+//! - Query first check min/max，mismatch Granule directly skip
+//! - this is one of column store core optimizations
+//! - time complexity: O(Granule count) pruning，rather than O(record count)
 
 
-/// Granule 元数据
+/// Granule metadata
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GranuleMeta {
-    /// 数据偏移
+    /// Dataoffset
     pub offset: u64,
-    /// 记录数
+    /// Recordcount
     pub count: u32,
-    /// 最小值（8 bytes，足够存储 i64/f64）
+    /// Minimum (8 bytes, enough to store i64/f64)
     pub min_val: [u8; 8],
-    /// 最大值
+    /// Maximum
     pub max_val: [u8; 8],
 }
 
@@ -43,34 +43,34 @@ impl GranuleMeta {
         }
     }
 
-    /// 设置 min/max（f64）
+    /// Set min/max（f64）
     pub fn set_f64(&mut self, min: f64, max: f64) {
         self.min_val = min.to_le_bytes();
         self.max_val = max.to_le_bytes();
     }
 
-    /// 获取 min（f64）
+    /// Get min（f64）
     pub fn min_f64(&self) -> f64 {
         f64::from_le_bytes(self.min_val)
     }
 
-    /// 获取 max（f64）
+    /// Get max（f64）
     pub fn max_f64(&self) -> f64 {
         f64::from_le_bytes(self.max_val)
     }
 
-    /// 判断值是否在范围内
+    /// Check value whether in range
     pub fn contains_f64(&self, value: f64) -> bool {
         value >= self.min_f64() && value <= self.max_f64()
     }
 
-    /// 判断范围是否重叠
+    /// Check range whether overlap
     pub fn overlaps_f64(&self, min: f64, max: f64) -> bool {
         !(self.max_f64() < min || self.min_f64() > max)
     }
 }
 
-/// Skip Index — Granule 元数据列表
+/// Skip Index — Granule metadatalist
 pub struct SkipIndex {
     pub granules: Vec<GranuleMeta>,
 }
@@ -80,12 +80,12 @@ impl SkipIndex {
         Self { granules: Vec::new() }
     }
 
-    /// 添加 Granule 元数据
+    /// Add Granule metadata
     pub fn push(&mut self, meta: GranuleMeta) {
         self.granules.push(meta);
     }
 
-    /// 查询：返回可能包含值的 Granule 索引列表
+    /// Query: return possible containing value Granule index list
     pub fn query_f64(&self, min: f64, max: f64) -> Vec<usize> {
         self.granules
             .iter()
@@ -95,7 +95,7 @@ impl SkipIndex {
             .collect()
     }
 
-    /// 统计剪枝效果
+    /// Statistics pruning effect
     pub fn prune_stats(&self, min: f64, max: f64) -> (usize, usize) {
         let checked = self.query_f64(min, max).len();
         let total = self.granules.len();
@@ -125,7 +125,7 @@ mod tests {
         idx.push(g2);
         idx.push(g3);
 
-        // 查询 [15, 22]，应匹配 g2 和 g3
+        // Query [15, 22], should match g2 and g3
         let result = idx.query_f64(15.0, 22.0);
         assert_eq!(result.len(), 2);
         assert!(result.contains(&1)); // g2

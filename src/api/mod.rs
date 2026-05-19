@@ -11,11 +11,11 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! Fluent API — Rust 链式调用接口
+//! Fluent API — Rust chainable call interface
 //!
-//! 教学说明：
-//! - 提供类型安全的链式 API
-//! - 构建查询、执行写入、调用 DSL
+//! Educational Notes:
+//! - provide type-safe chain API
+//! - buildQuery、Executewrite、call DSL
 
 pub mod dsl_api;
 pub mod query_builder;

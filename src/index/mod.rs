@@ -11,17 +11,17 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 索引层
+//! Index Layer
 //!
-//! 教学说明：
-//! - UUID → NodeOffset：强一致索引，使用 redb（纯 Rust B+Tree）
-//! - Time Range：二级索引，支持 created_at/updated_at 范围查询
-//! - Skip Index：列引擎内联，用于 Granule 级剪枝
+//! Educational Notes:
+//! - UUID → NodeOffset: strongly consistent index, use redb (pure Rust B+Tree)
+//! - Time Range: two-level index, support created_at/updated_at range query
+//! - Skip Index: column engine inline, used for Granule level pruning
 //!
-//! redb 特性：
-//! - 纯 Rust 实现，无需外部进程
-//! - 支持 ACID 事务
-//! - 教学版数据量小，性能足够
+//! redb features：
+//! - pure Rust implementation, no external process
+//! - support ACID transaction
+//! - edu edition data volume small, performance sufficient
 
 pub mod time_index;
 pub mod uuid_index;

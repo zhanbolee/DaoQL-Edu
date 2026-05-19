@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 列文件 / chunk 文件管理
+//! Column file / chunk file management
 //!
-//! 教学说明：
-//! - 列存储使用独立文件：每列一个 .col 文件，每个 chunk 一个 .dat 文件
-//! - 文件格式：Header + Data（可选 lz4 压缩）
-//! - Header 包含 magic、版本、元数据，用于启动时校验
+//! Educational Notes:
+//! - column store uses independent file：one per column .col file, each chunk a .dat file
+//! - file format：Header + Data（optional lz4 compress）
+//! - Header contains magic, version, metadata, used for startup validation
 
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, Write};
@@ -24,23 +24,23 @@ use std::path::{Path, PathBuf};
 
 use crate::error::{DaoQLError, StorageError};
 
-/// 列文件头
+/// columnfile header
 ///
-/// 256 字节固定头，包含文件元数据。
+/// 256 bytesfixedhead，containfilemetadata。
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct ColumnFileHeader {
-    /// 魔数
+    /// magic number
     pub magic: [u8; 4],
-    /// 版本号
+    /// Version number
     pub version: u32,
-    /// 字段类型
+    /// Field type
     pub field_type: u8,
-    /// Granule 数量
+    /// Granule quantity
     pub granule_count: u32,
-    /// 总记录数
+    /// Total record count
     pub total_records: u64,
-    /// 预留
+    /// Reserved
     pub reserved: [u8; 240],
 }
 
@@ -59,17 +59,17 @@ impl ColumnFileHeader {
         }
     }
 
-    /// 校验魔数
+    /// validate magic number
     pub fn validate(&self) -> Result<(), DaoQLError> {
         if self.magic != Self::MAGIC {
             return Err(DaoQLError::Storage(StorageError::Corruption(
-                "列文件魔数不匹配".to_string(),
+                "columnfilemagic numbermismatch".to_string(),
             )));
         }
         Ok(())
     }
 
-    /// 序列化为字节数组
+    /// Serialize to byte countgroup
     pub fn to_bytes(&self) -> [u8; 256] {
         let mut buf = [0u8; 256];
         buf[0..4].copy_from_slice(&self.magic);
@@ -80,7 +80,7 @@ impl ColumnFileHeader {
         buf
     }
 
-    /// 从字节数组解析
+    /// Secondarybyte countgroupParse
     pub fn from_bytes(bytes: &[u8; 256]) -> Self {
         Self {
             magic: [bytes[0], bytes[1], bytes[2], bytes[3]],
@@ -96,7 +96,7 @@ impl ColumnFileHeader {
     }
 }
 
-/// 列文件管理器
+/// columnfilemanager
 pub struct ColumnFile {
     pub path: PathBuf,
     pub file: File,
@@ -104,7 +104,7 @@ pub struct ColumnFile {
 }
 
 impl ColumnFile {
-    /// 打开或创建列文件
+    /// OpenOrCreatecolumnfile
     pub fn open_or_create(path: impl AsRef<Path>, field_type: u8) -> Result<Self, DaoQLError> {
         let path = path.as_ref().to_path_buf();
         let exists = path.exists();
@@ -132,7 +132,7 @@ impl ColumnFile {
         Ok(Self { path, file, header })
     }
 
-    /// 追加 granule 数据
+    /// append granule data
     pub fn append_granule(&mut self, data: &[u8]) -> Result<u64, DaoQLError> {
         let offset = self.file.metadata()?.len();
         self.file.write_all(data)?;
@@ -142,7 +142,7 @@ impl ColumnFile {
         Ok(offset)
     }
 
-    /// 读取 granule 数据
+    /// Read granule data
     pub fn read_at(&mut self, offset: u64, len: usize) -> Result<Vec<u8>, DaoQLError> {
         self.file.seek(std::io::SeekFrom::Start(offset))?;
         let mut buf = vec![0u8; len];
@@ -150,7 +150,7 @@ impl ColumnFile {
         Ok(buf)
     }
 
-    /// 同步文件头
+    /// Synchronousfile header
     fn sync_header(&mut self) -> Result<(), DaoQLError> {
         self.file.seek(std::io::SeekFrom::Start(0))?;
         self.file.write_all(&self.header.to_bytes())?;
@@ -159,9 +159,9 @@ impl ColumnFile {
     }
 }
 
-/// Chunk 文件（RawLayer）
+/// Chunk file（RawLayer）
 ///
-/// 存储原始行数据的文件。
+/// Storage raw row data file。
 pub struct ChunkFile {
     pub path: PathBuf,
     pub file: File,
@@ -172,7 +172,7 @@ pub struct ChunkFile {
 impl ChunkFile {
     pub const MAGIC: [u8; 4] = *b"RAWH";
 
-    /// 创建新的 chunk 文件
+    /// Createnew chunk file
     pub fn create(path: impl AsRef<Path>, chunk_id: u64) -> Result<Self, DaoQLError> {
         let path = path.as_ref().to_path_buf();
         let mut file = OpenOptions::new()
@@ -182,7 +182,7 @@ impl ChunkFile {
             .truncate(false)
             .open(&path)?;
 
-        // 写入头
+        // Writehead
         let mut header = vec![0u8; 256];
         header[0..4].copy_from_slice(&Self::MAGIC);
         header[4..8].copy_from_slice(&1u32.to_le_bytes()); // version
@@ -198,7 +198,7 @@ impl ChunkFile {
         })
     }
 
-    /// 追加记录
+    /// Append record
     pub fn append_record(&mut self, data: &[u8]) -> Result<u64, DaoQLError> {
         let offset = self.file.metadata()?.len();
         let len = data.len() as u32;
@@ -208,9 +208,9 @@ impl ChunkFile {
         Ok(offset)
     }
 
-    /// 读取所有记录
+    /// Readallrecord
     pub fn read_all(&mut self) -> Result<Vec<Vec<u8>>, DaoQLError> {
-        self.file.seek(std::io::SeekFrom::Start(256))?; // 跳过头
+        self.file.seek(std::io::SeekFrom::Start(256))?; // skiphead
         let mut records = Vec::new();
         let file_len = self.file.metadata()?.len();
 
@@ -263,7 +263,7 @@ mod tests {
         let offset = cf.append_granule(data).unwrap();
         assert!(offset > 0);
 
-        // 重新打开验证
+        // re-openvalidate
         drop(cf);
         let cf2 = ColumnFile::open_or_create(&path, 1).unwrap();
         assert_eq!(cf2.header.granule_count, 1);

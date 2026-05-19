@@ -11,13 +11,13 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! Being（实体）— 世界上存在的一切事物
+//! Being (Entity) — everything that exists in the world
 //!
-//! 教学说明：
-//! - Being 是 DaoQL 的核心概念，代表一切可被标识的事物
-//! - 由三部分组成：BeingCore（固定字段）+ BeingExt（动态字段）+ embeddings（向量）
-//! - 写入时拆分为 NodeRecord（mmap 定长）和外部存储（ext/embedding）
-//! - 这种"固定+动态"的设计兼顾了性能（固定字段内联）和灵活性（动态字段无 Schema 约束）
+//! Educational Notes:
+//! - Being is the core concept of DaoQL, representing everything that can be identified
+//! - Composed of three parts: BeingCore (fixed fields) + BeingExt (dynamic fields) + embeddings (vectors)
+//! - When writing, split into NodeRecord (mmap fixed-length) and external storage (ext/embedding)
+//! - This 'fixed+dynamic' design balances performance (fixed fields inline) and flexibility (dynamic fields without schema constraints)
 
 use std::collections::HashMap;
 
@@ -27,22 +27,22 @@ use serde_json::Value;
 use crate::error::DaoQLError;
 use crate::id::BeingId;
 
-/// 内存中的完整 Being 表示
+/// In-memory full Being representation
 ///
-/// 这是用户操作的数据结构，从 NodeRecord + ext + embedding 组装而来。
-/// 写入时拆分为多个部分分别存储。
+/// This is the user-facing data structure, assembled from NodeRecord + ext + embedding.
+/// When writing, split into multiple parts for separate storage.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Being {
-    /// 固定核心字段
+    /// Fixed core fields
     pub core: BeingCore,
-    /// 动态扩展属性（可选）
+    /// Dynamic extended attributes (optional)
     pub ext: Option<BeingExt>,
-    /// 嵌入向量（字段名 → 向量）
+    /// Embedding vectors (field name → vector)
     pub embeddings: HashMap<String, Vec<f32>>,
 }
 
 impl Being {
-    /// 创建新 Being（自动生成 BeingId）
+    /// Create new Being (auto-generates BeingId)
     pub fn new(name: impl Into<String>, def: impl Into<String>) -> Self {
         Self {
             core: BeingCore::new(name, def),
@@ -51,7 +51,7 @@ impl Being {
         }
     }
 
-    /// 从 BeingId 创建（用于读取后重建）
+    /// Create from BeingId (used for reconstruction after reading)
     pub fn with_id(id: BeingId) -> Self {
         Self {
             core: BeingCore::with_id(id),
@@ -60,7 +60,7 @@ impl Being {
         }
     }
 
-    /// 从 NodeRecord 重建 Being
+    /// Reconstruct Being from NodeRecord
     pub fn from_node(node: &crate::graph::record::NodeRecord) -> Result<Self, DaoQLError> {
         Ok(Self {
             core: BeingCore {
@@ -83,7 +83,7 @@ impl Being {
         })
     }
 
-    /// 添加动态字段
+    /// Add dynamic field
     pub fn with_attr(mut self, key: impl Into<String>, value: Value) -> Self {
         self.ext.get_or_insert_with(|| BeingExt {
             being_id: self.core.id,
@@ -96,45 +96,45 @@ impl Being {
         self
     }
 
-    /// 添加嵌入向量
+    /// Add embedding vector
     pub fn with_embedding(mut self, field: impl Into<String>, vector: Vec<f32>) -> Self {
         self.embeddings.insert(field.into(), vector);
         self
     }
 
-    /// 获取动态字段值
+    /// Get dynamic field value
     pub fn attr(&self, key: &str) -> Option<&Value> {
         self.ext.as_ref()?.dynamic_attrs.get(key)
     }
 
-    /// 获取嵌入向量
+    /// Get embedding vector
     pub fn embedding(&self, field: &str) -> Option<&Vec<f32>> {
         self.embeddings.get(field)
     }
 
-    /// 更新状态
+    /// Update status
     pub fn set_status(&mut self, status: u8) {
         self.core.status = status;
         self.core.updated_at = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     }
 
-    /// 验证 Being 完整性
+    /// Validate Being integrity
     pub fn validate(&self) -> Result<(), DaoQLError> {
         if self.core.name.is_empty() {
             return Err(DaoQLError::ConstraintViolation(
-                "Being name 不能为空".to_string(),
+                "Being name cannot be empty".to_string(),
             ));
         }
         if self.core.def.is_empty() {
             return Err(DaoQLError::ConstraintViolation(
-                "Being def 不能为空".to_string(),
+                "Being def cannot be empty".to_string(),
             ));
         }
-        // 验证向量维度一致性
+        // Validate vector dimension consistency
         for (field, vec) in &self.embeddings {
             if vec.is_empty() {
                 return Err(DaoQLError::ConstraintViolation(format!(
-                    "嵌入向量 {field} 不能为空"
+                    "Embedding vector {field} cannot be empty"
                 )));
             }
         }
@@ -142,42 +142,42 @@ impl Being {
     }
 }
 
-/// Being 固定核心字段
+/// Being Fixed core fields
 ///
-/// 这些字段内联存储在 NodeRecord（1536 bytes）中，实现 O(1) 随机访问。
-/// 教学版包含约 20 个常用字段，实际生产系统可能有更多。
+/// These fields are inline-stored in NodeRecord (1536 bytes), enabling O(1) random access.
+/// Edu edition contains ~20 common fields; production may have more.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BeingCore {
-    /// 全局唯一标识符
+    /// Globally unique identifier
     pub id: BeingId,
-    /// 类型定义名（如 "Order"）
+    /// Type definition name (e.g. "Order")
     pub def: String,
-    /// 状态码（0 = 正常，1 = 停用，等等）
+    /// Status code (0 = normal, 1 = disabled, etc.)
     pub status: u8,
-    /// 显示名称
+    /// Display name
     pub name: String,
-    /// 业务编码
+    /// Business code
     pub code: String,
-    /// 描述
+    /// Description
     pub description: String,
-    /// 权重（用于排序/优先级）
+    /// Weight (for sorting/priority)
     pub weight: f64,
-    /// 优先级
+    /// Priority
     pub priority: i32,
-    /// 分类
+    /// Category
     pub category: String,
-    /// 创建时间（纳秒时间戳）
+    /// Creation time (nanosecond timestamp)
     pub created_at: i64,
-    /// 更新时间（纳秒时间戳）
+    /// Update time (nanosecond timestamp)
     pub updated_at: i64,
-    /// MVCC 开始事务号
+    /// MVCC begin transaction number
     pub tx_begin: u64,
-    /// MVCC 结束事务号（u64::MAX = 活跃）
+    /// MVCC end transaction number (u64::MAX = active)
     pub tx_end: u64,
 }
 
 impl BeingCore {
-    /// 创建新 BeingCore
+    /// Create new BeingCore
     pub fn new(name: impl Into<String>, def: impl Into<String>) -> Self {
         let now = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
         Self {
@@ -197,7 +197,7 @@ impl BeingCore {
         }
     }
 
-    /// 从 BeingId 创建（用于读取后重建）
+    /// Create from BeingId (used for reconstruction after reading)
     pub fn with_id(id: BeingId) -> Self {
         let now = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
         Self {
@@ -217,44 +217,44 @@ impl BeingCore {
         }
     }
 
-    /// 判断在当前事务下是否可见
+    /// Determine visibility under current transaction
     ///
-    /// MVCC 可见性规则（Read Committed）：
-    /// - 已提交：tx_begin ≤ 当前事务号 且 (tx_end > 当前事务号 或 tx_end = u64::MAX)
-    /// - 未提交：tx_begin 在当前活跃事务集合中
+    /// MVCC visibility rules (Read Committed):
+    /// - Committed: tx_begin ≤ current_txn AND (tx_end > current_txn OR tx_end = u64::MAX)
+    /// - Uncommitted: tx_begin is in the current active transaction set
     pub fn is_visible(&self, tx_id: u64, active_txs: &[u64]) -> bool {
-        // 当前事务自己创建的，总是可见
+        // Self-created in current transaction, always visible
         if self.tx_begin == tx_id {
             return true;
         }
-        // 创建者已提交（tx_begin 不在活跃集合中）
+        // Creator committed (tx_begin not in active set)
         let creator_committed = !active_txs.contains(&self.tx_begin);
-        // 当前版本已结束（被更新/删除）
+        // Current version ended (updated/deleted)
         let is_ended = self.tx_end != u64::MAX;
-        // 结束者已提交
+        // End-er committed
         let ender_committed = is_ended && !active_txs.contains(&self.tx_end);
 
-        // 可见性：创建者已提交，且（未结束 或 结束者已提交）
+        // Visibility: creator committed, and (not ended OR ender committed)
         creator_committed && (!is_ended || ender_committed)
     }
 }
 
-/// Being 动态扩展属性
+/// Being dynamic extended attributes
 ///
-/// 无 Schema 约束的键值对存储。
-/// 存储在外部文件（非 mmap 定长区域），通过 NodeRecord.ext_offset 引用。
+/// Key-value storage without schema constraints.
+/// Stored in external file (non-mmap fixed-length area), referenced via NodeRecord.ext_offset.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BeingExt {
-    /// 关联的 BeingId
+    /// Associated BeingId
     pub being_id: BeingId,
-    /// 扩展属性时间戳
+    /// Extended attribute timestamp
     pub timestamp: i64,
-    /// 动态属性映射（键 → JSON 值）
+    /// Dynamic attribute map (key → JSON value)
     pub dynamic_attrs: HashMap<String, Value>,
 }
 
 impl BeingExt {
-    /// 创建空扩展
+    /// Create empty extension
     pub fn new(being_id: BeingId) -> Self {
         Self {
             being_id,
@@ -263,23 +263,23 @@ impl BeingExt {
         }
     }
 
-    /// 设置动态字段
+    /// Set dynamic field
     pub fn set(&mut self, key: impl Into<String>, value: Value) {
         self.dynamic_attrs.insert(key.into(), value);
         self.timestamp = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     }
 
-    /// 获取动态字段
+    /// Get dynamic field
     pub fn get(&self, key: &str) -> Option<&Value> {
         self.dynamic_attrs.get(key)
     }
 
-    /// 序列化为 JSON
+    /// Serialize to JSON
     pub fn to_bytes(&self) -> Result<Vec<u8>, DaoQLError> {
         Ok(serde_json::to_vec(self)?)
     }
 
-    /// 从 JSON 反序列化
+    /// Deserialize from JSON
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, DaoQLError> {
         Ok(serde_json::from_slice(bytes)?)
     }
@@ -336,20 +336,20 @@ mod tests {
         core.tx_begin = 10;
         core.tx_end = u64::MAX;
 
-        // 事务 20 读取：创建者 10 已提交（不在活跃集），未结束 → 可见
+        // Txn 20 reads: creator 10 committed (not in active set), not ended → visible
         assert!(core.is_visible(20, &[]));
 
-        // 事务 20 读取：创建者 10 仍在活跃 → 不可见
+        // Txn 20 reads: creator 10 still active → not visible
         assert!(!core.is_visible(20, &[10]));
 
-        // 事务 20 读取：已结束（tx_end=15），结束者已提交 → 可见（旧版本）
+        // Txn 20 reads: ended (tx_end=15), end-er committed → visible (old version)
         core.tx_end = 15;
         assert!(core.is_visible(20, &[]));
 
-        // 事务 20 读取：已结束，结束者未提交 → 不可见
+        // Txn 20 reads: ended, end-er not committed → not visible
         assert!(!core.is_visible(20, &[15]));
 
-        // 自己创建的事务总是可见
+        // Self-created transactions are always visible
         assert!(core.is_visible(10, &[]));
     }
 

@@ -11,13 +11,13 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 图引擎（Graph Engine）
+//! Graph Engine（Graph Engine）
 //!
-//! 教学说明：
-//! - 基于 mmap 定长记录（NodeRecord/EdgeRecord）
-//! - 免索引邻接：边通过 next_out/next_in 指针内联链接
-//! - 支持 BFS、DFS、PageRank 等图算法
-//! - PerBeingLock 实现细粒度并发控制
+//! Educational Notes:
+//! - Based on mmap fixed-length records (NodeRecord/EdgeRecord)
+//! - Index-free adjacency: edges inline-linked via next_out/next_in pointers
+//! - support BFS, DFS, PageRank and other graph algorithms
+//! - PerBeingLock implement fine-grained concurrency control
 
 pub mod lock;
 pub mod record;

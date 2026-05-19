@@ -11,13 +11,13 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! PerBeingLock — 每个 Being 的细粒度锁
+//! PerBeingLock — fine-grained lock per Being
 //!
-//! 教学说明：
-//! - 全局锁会导致严重并发瓶颈
-//! - PerBeingLock 为每个 Being 分配一个 RwLock，实现细粒度并发控制
-//! - 事务按 BeingId 排序后批量加锁，防止死锁
-//! - 锁池使用 Arc<RwLock<()>>，锁对象在池中复用
+//! Educational Notes:
+//! - global lock causes severe concurrency bottleneck
+//! - PerBeingLock allocates a RwLock for each Being，implement fine-grained concurrency control
+//! - transaction sorts by BeingId then batch locks，prevent deadlock
+//! - lock pool uses Arc<RwLock<()>>，lock objects reused in pool
 
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -25,17 +25,17 @@ use std::sync::{Arc, RwLock};
 use crate::error::{DaoQLError, TransactionError};
 use crate::id::BeingId;
 
-/// 每个 Being 的读写锁
+/// each Being read-write lock
 ///
-/// 使用 std::sync::RwLock（非 tokio::sync，因为教学版是同步引擎）
+/// Use std::sync::RwLock（not tokio::sync, because edu edition is synchronous engine）
 pub type BeingLock = Arc<RwLock<()>>;
 
-/// 锁管理器
+/// Lockmanager
 ///
-/// 管理所有 Being 的锁对象，按需创建、惰性初始化。
+/// Manage all Being lock objects, create on demand, lazy initialize。
 #[derive(Clone)]
 pub struct LockManager {
-    /// BeingId → 锁对象的映射
+    /// BeingId → lock objectmap
     locks: Arc<RwLock<HashMap<BeingId, BeingLock>>>,
 }
 
@@ -52,26 +52,26 @@ impl LockManager {
         }
     }
 
-    /// 获取或创建锁对象
+    /// GetOrCreatelockobject
     fn get_or_create(&self, id: BeingId) -> BeingLock {
-        // 先尝试读锁获取
+        // Try read lock first
         {
             let read_guard = self.locks.read().unwrap();
             if let Some(lock) = read_guard.get(&id) {
                 return lock.clone();
             }
         }
-        // 未找到，写锁创建
+        // not found, write lock and create
         let mut write_guard = self.locks.write().unwrap();
         write_guard.entry(id).or_insert_with(|| Arc::new(RwLock::new(()))).clone()
     }
 
-    /// 获取单个 Being 的读锁对象
+    /// Get single Being read lock object
     ///
-    /// 返回 Arc<RwLock<()>>，由调用者自行加锁
+    /// Return Arc<RwLock<()>>, caller manages locking
     pub fn read_lock(&self, id: BeingId) -> Result<BeingLock, DaoQLError> {
         let lock = self.get_or_create(id);
-        // 预检查：尝试加读锁，确保锁可用
+        // pre-check: try read lock, ensure lock available
         let _guard = lock.read().map_err(|_| {
             DaoQLError::Transaction(TransactionError::LockTimeout(id))
         })?;
@@ -79,12 +79,12 @@ impl LockManager {
         Ok(lock)
     }
 
-    /// 获取单个 Being 的写锁对象
+    /// Get single Being write lock object
     ///
-    /// 返回 Arc<RwLock<()>>，由调用者自行加锁
+    /// Return Arc<RwLock<()>>, caller manages locking
     pub fn write_lock(&self, id: BeingId) -> Result<BeingLock, DaoQLError> {
         let lock = self.get_or_create(id);
-        // 预检查：尝试加写锁，确保锁可用
+        // pre-check: try write lock, ensure lock available
         let _guard = lock.write().map_err(|_| {
             DaoQLError::Transaction(TransactionError::LockTimeout(id))
         })?;
@@ -92,17 +92,17 @@ impl LockManager {
         Ok(lock)
     }
 
-    /// 批量获取写锁对象（按 BeingId 排序，防止死锁）
+    /// BatchAcquire write lockobject（by BeingId sort，prevent deadlock）
     ///
-    /// 教学说明：
-    /// - 死锁的必要条件之一是循环等待
-    /// - 按全局顺序加锁，打破循环等待条件
-    /// - 这是数据库中经典的死锁预防策略
+    /// Educational Notes:
+    /// - one necessary condition for deadlock is recurrent waiting
+    /// - lock in global order, break recurrent waiting condition
+    /// - this is a classic deadlock prevention policy in databases
     pub fn batch_write_lock(
         &self,
         mut ids: Vec<BeingId>,
     ) -> Result<Vec<BeingLock>, DaoQLError> {
-        // 去重并排序
+        // Deduplicate and sort
         ids.sort();
         ids.dedup();
 
@@ -113,14 +113,14 @@ impl LockManager {
         Ok(locks)
     }
 
-    /// 锁数量（用于调试）
+    /// Lock quantity (used for debugging)
     pub fn lock_count(&self) -> usize {
         self.locks.read().unwrap().len()
     }
 }
 
 impl LockManager {
-    /// 获取原始锁对象
+    /// Get original lock object
     pub fn get_lock(&self, id: BeingId) -> BeingLock {
         self.get_or_create(id)
     }
@@ -180,7 +180,7 @@ mod tests {
             let handle = std::thread::spawn(move || {
                 let lock = lm.read_lock(id).unwrap();
                 let _guard = lock.read().unwrap();
-                // 模拟读操作
+                // simulate read operation
                 std::thread::sleep(std::time::Duration::from_millis(1));
                 drop(_guard);
             });

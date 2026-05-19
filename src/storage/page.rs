@@ -11,45 +11,45 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 页分配器
+//! Page Allocator
 //!
-//! 教学说明：
-//! - 页分配器管理 mmap 文件内的空闲页
-//! - 采用空闲链表（Free List）设计：每个空闲页存储下一个空闲页的索引
-//! - 分配 = 从链表头部取出一个页
-//! - 释放 = 将页放回链表头部
-//! - 时间复杂度：O(1) 分配/释放
+//! Educational Notes:
+//! - page allocator manages free pages in mmap file
+//! - use free list design：each free page stores next free page index
+//! - allocate = take a page from linked list header
+//! - release = put page back to linked list header
+//! - time complexity：O(1) allocate/release
 
 use crate::error::{DaoQLError, StorageError};
 
-/// 页分配器
+/// pageallocate
 ///
-/// 管理固定大小页的空闲分配。
-/// 空闲页链表存储在 mmap 的第一个页中（页 0 为元数据页）。
+/// Manage fixed-size page free allocation。
+/// free page list stored in mmap first page（page 0 as metadata page）。
 #[derive(Debug)]
 pub struct PageAllocator {
-    /// 页大小（字节）
+    /// Page size (bytes)
     page_size: usize,
-    /// 总页数
+    /// Total page count
     total_pages: usize,
-    /// 空闲页链表头（0 表示无空闲页）
+    /// free page list head（0 representno free page）
     free_list_head: u32,
-    /// 已分配页数
+    /// Already allocated page count
     allocated: usize,
 }
 
 impl PageAllocator {
-    /// 创建新的页分配器
+    /// Createnewpageallocate
     pub fn new(page_size: usize, total_pages: usize) -> Self {
         Self {
             page_size,
             total_pages,
-            free_list_head: 1, // 页 0 为元数据页，从页 1 开始
+            free_list_head: 1, // page 0 as metadata page，start from page 1
             allocated: 0,
         }
     }
 
-    /// 分配一页，返回页索引
+    /// Allocateone page，returnpage index
     pub fn alloc(&mut self) -> Result<u32, DaoQLError> {
         if self.free_list_head == 0 || self.free_list_head as usize >= self.total_pages {
             return Err(DaoQLError::Storage(StorageError::CapacityExceeded {
@@ -58,12 +58,12 @@ impl PageAllocator {
             }));
         }
         let page_idx = self.free_list_head;
-        self.free_list_head += 1; // 简化：顺序分配
+        self.free_list_head += 1; // simplify: sequential allocate
         self.allocated += 1;
         Ok(page_idx)
     }
 
-    /// 释放一页
+    /// Releaseone page
     pub fn free(&mut self, page_idx: u32) -> Result<(), DaoQLError> {
         if page_idx == 0 || page_idx as usize >= self.total_pages {
             return Err(DaoQLError::Storage(StorageError::OffsetOutOfBounds {
@@ -71,33 +71,33 @@ impl PageAllocator {
                 capacity: self.total_pages,
             }));
         }
-        // 简化版：不维护真正的空闲链表，仅减少计数
-        // 生产版应维护双向链表
+        // simplified version: don't maintain real free list, just reduce count
+        // production version should maintain doubly linked list
         self.allocated -= 1;
         Ok(())
     }
 
-    /// 页索引 → 字节偏移
+    /// page index → byte offset
     pub fn offset_of(&self, page_idx: u32) -> u64 {
         page_idx as u64 * self.page_size as u64
     }
 
-    /// 字节偏移 → 页索引
+    /// byte offset → page index
     pub fn page_of(&self, offset: u64) -> u32 {
         (offset / self.page_size as u64) as u32
     }
 
-    /// 已分配页数
+    /// Already allocated page count
     pub fn allocated(&self) -> usize {
         self.allocated
     }
 
-    /// 空闲页数
+    /// free page count
     pub fn free_count(&self) -> usize {
         self.total_pages - self.allocated
     }
 
-    /// 使用率
+    /// utilization rate
     pub fn utilization(&self) -> f64 {
         self.allocated as f64 / self.total_pages as f64
     }
@@ -127,7 +127,7 @@ mod tests {
         let mut pa = PageAllocator::new(4096, 3);
         pa.alloc().unwrap(); // 1
         pa.alloc().unwrap(); // 2
-        assert!(pa.alloc().is_err()); // 3 是边界，简化版不分配
+        assert!(pa.alloc().is_err()); // 3 is boundary, simplified version doesn't allocate
     }
 
     #[test]

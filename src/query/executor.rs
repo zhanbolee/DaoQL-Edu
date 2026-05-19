@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 查询执行器
+//! Query Executor
 //!
-//! 教学说明：
-//! - 通用查询结果迭代器
-//! - 惰性求值：直到调用 next() 才真正读取数据
-//! - 教学重点：展示迭代器适配器模式在查询引擎中的应用
+//! Educational Notes:
+//! - General query result iteration
+//! - lazy evaluation: until call next() truly read data
+//! - teaching focus: demonstrate iterator adapter pattern in query engine
 
 use std::cell::RefCell;
 
@@ -26,7 +26,7 @@ use crate::graph::record::NodeRecord;
 use crate::graph::store::GraphStore;
 use crate::query::planner::{PlanStep, QueryPlan};
 
-/// 查询引擎
+/// Queryengine
 pub struct QueryEngine<'a> {
     graph: &'a RefCell<GraphStore>,
 }
@@ -36,7 +36,7 @@ impl<'a> QueryEngine<'a> {
         Self { graph }
     }
 
-    /// 执行查询计划
+    /// Execute query plan
     pub fn execute(&self, plan: &QueryPlan) -> Result<QueryResult, DaoQLError> {
         let graph = self.graph.borrow();
         let mut items = Vec::new();
@@ -62,7 +62,7 @@ impl<'a> QueryEngine<'a> {
                     items.truncate(*n);
                 }
                 _ => {
-                    // 教学版：Filter/Project/Aggregate 暂不实现
+                    // edu edition: Filter/Project/Aggregate not yet implemented
                 }
             }
         }
@@ -73,12 +73,12 @@ impl<'a> QueryEngine<'a> {
 
 
 
-/// 查询结果
+/// Queryresult
 pub struct QueryResult {
     pub items: Vec<Being>,
-    /// 聚合查询结果（如有）
+    /// Aggregate query result (if any)
     pub aggregate_value: Option<f64>,
-    /// 聚合操作类型
+    /// Aggregateoperation type
     pub aggregate_op: Option<String>,
 }
 
@@ -95,19 +95,19 @@ impl QueryResult {
         self.items.len()
     }
 
-    /// 过滤
+    /// Filter
     pub fn filter(mut self, f: impl Fn(&Being) -> bool) -> Self {
         self.items.retain(f);
         self
     }
 
-    /// 限制数量
+    /// Limit count
     pub fn limit(mut self, n: usize) -> Self {
         self.items.truncate(n);
         self
     }
 
-    /// 收集为 Vec
+    /// collect to Vec
     pub fn collect(self) -> Vec<Being> {
         self.items
     }

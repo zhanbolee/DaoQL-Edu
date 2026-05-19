@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 页面缓存（PageCache）
+//! Page Cache (PageCache)
 //!
-//! 教学说明：
-//! - Clock Sweep 算法：经典操作系统缓存淘汰算法
-//! - 16 分区：减少锁竞争
-//! - 每个缓存页有一个 "引用位"（ref bit）
+//! Educational Notes:
+//! - Clock Sweep algorithm：classic OS cache eviction algorithm
+//! - 16 partition：reduce lock contention
+//! - Each cache page has a "reference bit" (ref bit)
 
 pub mod clock_sweep;
 

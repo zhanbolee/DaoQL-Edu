@@ -11,14 +11,14 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! WAL 记录格式
+//! WAL Record Format
 //!
-//! 教学说明：
-//! - 文件结构：顺序追加，每条记录独立可解析
-//! - magic 用于识别文件格式
-//! - seq 用于崩溃恢复时确定最后有效记录
-//! - crc32 检测写损坏
-//! - 每条记录独立解析，便于部分恢复
+//! Educational Notes:
+//! - file structure: sequential append, each record independently parseable
+//! - magic used for recognizing file format
+//! - seq used for determining last valid record during crash recovery
+//! - crc32 detectss write corruption
+//! - each record independently parseable, facilitating partial recovery
 
 use serde::{Deserialize, Serialize};
 
@@ -28,21 +28,21 @@ use crate::id::BeingId;
 use crate::relation::Relation;
 use crate::transaction::TxId;
 
-/// WAL 魔数
+/// WAL magic number
 pub const WAL_MAGIC: [u8; 4] = *b"WAL\x01";
 
-/// WAL 记录头大小
+/// WAL recordheadsize
 pub const WAL_HEADER_SIZE: usize = 16; // magic(4) + len(4) + seq(8)
 
-/// WAL 记录
+/// WAL record
 ///
-/// 二进制格式：
+/// binary format：
 /// ```ignore
 /// [magic: 4 bytes]     = b"WAL\x01"
-/// [payload_len: 4 bytes] — 小端序 u32
-/// [seq: 8 bytes]         — 小端序 u64
-/// [payload: N bytes]     — postcard 序列化的 TransactionPayload
-/// [crc32: 4 bytes]       — payload 的 CRC32 校验和
+/// [payload_len: 4 bytes] — little-endian u32
+/// [seq: 8 bytes]         — little-endian u64
+/// [payload: N bytes]     — postcard serialized TransactionPayload
+/// [crc32: 4 bytes]       — payload CRC32 checksum
 /// ```ignore
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WalRecord {
@@ -54,7 +54,7 @@ pub struct WalRecord {
 }
 
 impl WalRecord {
-    /// 创建新记录
+    /// Createnewrecord
     pub fn new(seq: u64, payload: Vec<u8>) -> Self {
         let crc32 = crc32fast::hash(&payload);
         Self {
@@ -66,7 +66,7 @@ impl WalRecord {
         }
     }
 
-    /// 序列化为字节
+    /// Serialize to bytes
     pub fn serialize(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(WAL_HEADER_SIZE + self.payload.len() + 4);
         buf.extend_from_slice(&self.magic);
@@ -77,17 +77,17 @@ impl WalRecord {
         buf
     }
 
-    /// 从字节流解析（可能包含多条记录）
+    /// Secondary byte stream parse (may contain multiple records)
     ///
-    /// 返回：(解析出的记录, 剩余字节数)
+    /// Return: (parsed record, remaining byte count)
     pub fn parse_one(data: &[u8]) -> Result<(Option<Self>, usize), DaoQLError> {
         if data.len() < WAL_HEADER_SIZE + 4 {
             return Ok((None, 0));
         }
 
-        // 检查魔数
+        // checkmagic number
         if data[0..4] != WAL_MAGIC {
-            return Err(DaoQLError::Wal("WAL 魔数不匹配".to_string()));
+            return Err(DaoQLError::Wal("WAL magic number mismatch".to_string()));
         }
 
         let payload_len = u32::from_le_bytes([data[4], data[5], data[6], data[7]]) as usize;
@@ -98,7 +98,7 @@ impl WalRecord {
         let total_len = WAL_HEADER_SIZE + payload_len + 4;
 
         if data.len() < total_len {
-            return Ok((None, 0)); // 数据不完整
+            return Ok((None, 0)); // data incomplete
         }
 
         let payload = data[WAL_HEADER_SIZE..WAL_HEADER_SIZE + payload_len].to_vec();
@@ -109,11 +109,11 @@ impl WalRecord {
             data[WAL_HEADER_SIZE + payload_len + 3],
         ]);
 
-        // CRC 校验
+        // CRC checksum
         let computed_crc = crc32fast::hash(&payload);
         if computed_crc != stored_crc {
             return Err(DaoQLError::Wal(format!(
-                "CRC 校验失败: seq={seq}, 期望={stored_crc:08x}, 实际={computed_crc:08x}"
+                "CRC check failed: seq={seq}, expect={stored_crc:08x}, actual={computed_crc:08x}"
             )));
         }
 
@@ -128,38 +128,38 @@ impl WalRecord {
         Ok((Some(record), total_len))
     }
 
-    /// 验证 CRC
+    /// Validate CRC
     pub fn verify_crc(&self) -> bool {
         crc32fast::hash(&self.payload) == self.crc32
     }
 }
 
-/// 事务操作枚举
+/// Transaction operation enum
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[allow(clippy::large_enum_variant)]
 pub enum Op {
-    /// 创建 Being
+    /// Create Being
     CreateBeing { being: Being },
-    /// 更新 Being
+    /// Update Being
     UpdateBeing {
         id: BeingId,
-        /// 字段更新列表
+        /// FieldUpdatelist
         updates: Vec<FieldUpdate>,
     },
-    /// 创建关系
+    /// Create relation
     CreateRelation { relation: Relation },
-    /// 删除 Being（软删除）
+    /// Delete Being (soft delete)
     DeleteBeing { id: BeingId },
 }
 
-/// 字段更新
+/// FieldUpdate
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FieldUpdate {
     pub field_name: String,
     pub new_value: serde_json::Value,
 }
 
-/// 事务负载
+/// Transactionpayload
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TransactionPayload {
     pub tx_id: TxId,
@@ -216,7 +216,7 @@ mod tests {
     fn test_wal_record_crc_failure() {
         let payload = b"test payload".to_vec();
         let mut record = WalRecord::new(1, payload);
-        record.crc32 = 0xDEADBEEF; // 篡改 CRC
+        record.crc32 = 0xDEADBEEF; // tamper CRC
 
         let bytes = record.serialize();
         let result = WalRecord::parse_one(&bytes);
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_wal_record_partial_data() {
-        let data = vec![0u8; 10]; // 不足一个记录头
+        let data = vec![0u8; 10]; // insufficient for a record header
         let (parsed, _) = WalRecord::parse_one(&data).unwrap();
         assert!(parsed.is_none());
     }

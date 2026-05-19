@@ -11,13 +11,13 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! RawLayer — 原始行存储层
+//! RawLayer — raw row storage layer
 //!
-//! 教学说明：
-//! - append-only 设计：新记录追加到末尾，旧记录不修改
-//! - 序列化：postcard（紧凑二进制）+ JSON（动态字段）
-//! - 压缩：lz4_flex，减少磁盘占用
-//! - 适合：文档查询、全字段检索、非结构化数据
+//! Educational Notes:
+//! - append-only design: new record appended to end，old record not modified
+//! - serialize: postcard (compact binary) + JSON (dynamic fields)
+//! - compress: lz4_flex, reduce disk usage
+//! - suitable for: document query, full field retrieval, unstructured data
 
 
 use serde::{Deserialize, Serialize};
@@ -26,29 +26,29 @@ use crate::being::Being;
 use crate::error::DaoQLError;
 use crate::id::BeingId;
 
-/// 原始记录
+/// Rawrecord
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawRecord {
     pub being_id: BeingId,
     pub def_type: String,
     pub timestamp: i64,
-    /// postcard 序列化的 BeingCore
+    /// postcard serialized BeingCore
     pub core_data: Vec<u8>,
-    /// JSON 序列化的动态字段
+    /// JSON serializeddynamicfield
     pub ext_json: String,
 }
 
-/// RawLayer — 行存储
+/// RawLayer — row store
 pub struct RawLayer {
-    /// 内存缓冲区（未刷盘的记录）
+    /// Memory buffer (unflushed records)
     buffer: Vec<RawRecord>,
-    /// 已刷盘的 chunk 列表
+    /// AlreadyFlush chunk list
     chunks: Vec<RawChunk>,
-    /// 总记录数
+    /// Total record count
     total_records: u64,
 }
 
-/// 已持久化的 chunk
+/// Already persisted chunk
 #[derive(Debug, Clone)]
 pub struct RawChunk {
     pub chunk_id: u64,
@@ -65,7 +65,7 @@ impl RawLayer {
         }
     }
 
-    /// 追加 Being
+    /// append Being
     pub fn append(&mut self, being: &Being) -> Result<(), DaoQLError> {
         let record = RawRecord {
             being_id: being.core.id,
@@ -82,17 +82,17 @@ impl RawLayer {
         Ok(())
     }
 
-    /// 按 BeingId 查找（从缓冲区）
+    /// Find by BeingId (secondary buffer)
     pub fn find(&self, id: BeingId) -> Option<&RawRecord> {
         self.buffer.iter().find(|r| r.being_id == id)
     }
 
-    /// 扫描缓冲区中的所有记录
+    /// Scan buffer all records
     pub fn scan(&self) -> &[RawRecord] {
         &self.buffer
     }
 
-    /// 刷盘（教学版简化：返回序列化数据，实际写入由上层管理）
+    /// Flush (edu edition simplification: return serialized data, write managed by upper layer)
     pub fn flush(&mut self) -> Result<Vec<u8>, DaoQLError> {
         if self.buffer.is_empty() {
             return Ok(Vec::new());
@@ -112,12 +112,12 @@ impl RawLayer {
         Ok(compressed)
     }
 
-    /// 总记录数
+    /// Total record count
     pub fn total_records(&self) -> u64 {
         self.total_records
     }
 
-    /// chunk 数量
+    /// chunk quantity
     pub fn chunk_count(&self) -> usize {
         self.chunks.len()
     }

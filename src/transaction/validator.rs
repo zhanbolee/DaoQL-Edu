@@ -11,27 +11,27 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 约束验证器
+//! Constraint Validator
 //!
-//! 教学说明：
-//! - 验证 Being 数据是否符合 Def 定义
-//! - 检查必填字段、类型、范围约束
+//! Educational Notes:
+//! - validate Being whether data conforms to Def Define
+//! - check required fields、type、range constraints
 
 use crate::being::Being;
 use crate::def::Def;
 use crate::error::DaoQLError;
 
-/// 约束验证器
+/// Constraintvalidate
 pub struct ConstraintValidator;
 
 impl ConstraintValidator {
-    /// 验证 Being 是否符合 Def
+    /// Validate whether Being conforms to Def
     pub fn validate(being: &Being, def: &Def) -> Result<(), DaoQLError> {
-        // 验证必填字段
+        // validaterequired field
         for field_name in def.required_fields() {
             if being.attr(field_name).is_none() {
                 return Err(DaoQLError::ConstraintViolation(format!(
-                    "必填字段 '{}' 缺失",
+                    "required field '{}' missing",
                     field_name
                 )));
             }

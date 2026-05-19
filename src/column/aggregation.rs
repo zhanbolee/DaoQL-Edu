@@ -11,20 +11,20 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! SIMD 聚合实现
+//! SIMD Aggregation Implementation
 //!
-//! 教学说明：
-//! - SIMD（Single Instruction Multiple Data）：一次操作多个数据
-//! - f64x4：一次处理 4 个 f64，理论加速 4x
-//! - 实际加速约 2-3x（受内存带宽限制）
-//! - 剩余不足 4 的尾部用标量处理
-//! - 使用 `wide` crate（稳定可用，API 简洁）
+//! Educational Notes:
+//! - SIMD (Single Instruction Multiple Data): one operation multiple data
+//! - f64x4：process at once 4  f64，theoretical speedup 4x
+//! - actual accelerate about 2-3x（limited by memory bandwidth）
+//! - remaining less than 4 tail processed with scalar
+//! - use `wide` crate (stable, concise API)
 
 use wide::f64x4;
 
 use crate::error::DaoQLError;
 
-/// 聚合操作类型
+/// Aggregateoperation type
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AggregateOp {
     Count,
@@ -37,7 +37,7 @@ pub enum AggregateOp {
     Variance,
 }
 
-/// 聚合结果
+/// Aggregateresult
 #[derive(Debug, Clone, PartialEq)]
 pub struct AggregateResult {
     pub op: AggregateOp,
@@ -47,11 +47,11 @@ pub struct AggregateResult {
 
 /// SIMD Sum（f64）
 ///
-/// 算法：
-/// 1. 将数据分块为 f64x4（4 个 f64）
-/// 2. 每块用 SIMD 累加
-/// 3. 最后将 f64x4 的 4 个元素标量相加
-/// 4. 处理不足 4 的尾部
+/// algorithm：
+/// 1. will data chunked into f64x4（4  f64）
+/// 2. each chunk SIMD accumulated
+/// 3. finally will f64x4  4 elements scalar added
+/// 4. process less than 4 tail
 pub fn simd_sum(values: &[f64]) -> f64 {
     let chunks = values.chunks_exact(4);
     let remainder = chunks.remainder();
@@ -72,7 +72,7 @@ pub fn simd_sum(values: &[f64]) -> f64 {
     result
 }
 
-/// SIMD 点积（f32）
+/// SIMD dot product (f32)
 pub fn simd_dot(a: &[f32], b: &[f32]) -> f32 {
     assert_eq!(a.len(), b.len());
     let min_len = a.len().min(b.len());
@@ -86,7 +86,7 @@ pub fn simd_dot(a: &[f32], b: &[f32]) -> f32 {
     sum
 }
 
-/// 标量聚合
+/// ScalarAggregate
 pub fn aggregate(values: &[f64], op: AggregateOp) -> Result<AggregateResult, DaoQLError> {
     if values.is_empty() {
         return Ok(AggregateResult {
@@ -126,7 +126,7 @@ pub fn aggregate(values: &[f64], op: AggregateOp) -> Result<AggregateResult, Dao
     Ok(AggregateResult { op, value, count })
 }
 
-/// SIMD 与标量一致性验证（测试用）
+/// SIMD and scalar consistency validate（for testing）
 pub fn verify_simd_consistency(values: &[f64]) -> bool {
     let simd = simd_sum(values);
     let scalar: f64 = values.iter().sum();
@@ -171,7 +171,7 @@ mod tests {
     fn test_aggregate_stddev() {
         let values = vec![2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0];
         let result = aggregate(&values, AggregateOp::Stddev).unwrap();
-        // 标准差 ≈ 2.0
+        // std dev ≈ 2.0
         assert!((result.value - 2.0).abs() < 0.1);
     }
 

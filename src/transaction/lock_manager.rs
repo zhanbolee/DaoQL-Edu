@@ -11,10 +11,10 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 事务锁管理器
+//! Transaction Lock Manager
 //!
-//! 教学说明：
-//! - 继承 graph::lock::LockManager
-//! - 添加事务级批量加锁功能
+//! Educational Notes:
+//! - inherit graph::lock::LockManager
+//! - add transaction-level batch lock feature
 
 pub use crate::graph::lock::{BeingLock, LockManager};

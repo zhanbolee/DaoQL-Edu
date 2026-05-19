@@ -11,18 +11,18 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! DSL 语法分析器（递归下降）
+//! DSL Parser (Recursive Descent)
 //!
-//! 教学说明：
-//! - 递归下降：每个非终结符对应一个解析函数
-//! - 适合手写解析器，代码直观易懂
-//! - 不支持左递归（需改写为循环）
+//! Educational Notes:
+//! - recursive descent: each non-terminal corresponds to a parse function
+//! - suitable for hand-written parser, code intuitive and easy to understand
+//! - does not support left recursion (needs to be rewritten as recurrent)
 
 use crate::dsl::ast::{DslQuery, FieldDef, FilterExpr, HistoryExpr, MutationOp};
 use crate::dsl::lexer::{Lexer, Token};
 use crate::error::DaoQLError;
 
-/// 解析器
+/// Parse
 pub struct Parser<'a> {
     tokens: Vec<Token>,
     pos: usize,
@@ -40,7 +40,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    /// 解析 DSL 语句
+    /// Parse DSL statement
     pub fn parse(&mut self) -> Result<DslQuery, DaoQLError> {
         self.skip_newlines();
         match self.current() {
@@ -50,7 +50,7 @@ impl<'a> Parser<'a> {
             Token::Define => self.parse_define(),
             Token::Similar => self.parse_similar(),
             _ => Err(DaoQLError::DslParse(format!(
-                "期望 query/mutation/analyze/define/similar，得到 {:?}",
+                "expect query/mutation/analyze/define/similar，get {:?}",
                 self.current()
             ))),
         }
@@ -72,7 +72,7 @@ impl<'a> Parser<'a> {
         let actual = self.advance();
         if actual != expected {
             return Err(DaoQLError::DslParse(format!(
-                "期望 {:?}，得到 {:?}",
+                "expect {:?}，get {:?}",
                 expected, actual
             )));
         }
@@ -97,7 +97,7 @@ impl<'a> Parser<'a> {
         let mut history = None;
         let mut aggregate = None;
 
-        // 解析参数列表 (filter: ..., limit: ...)
+        // Parseparameterlist (filter: ..., limit: ...)
         if self.current() == Token::LeftParen {
             self.advance();
             while self.current() != Token::RightParen {
@@ -116,7 +116,7 @@ impl<'a> Parser<'a> {
                         aggregate = Some((agg_field, agg_op));
                     }
                     _ => {
-                        // 跳过未知参数
+                        // skip unknown parameter
                         self.advance();
                     }
                 }
@@ -127,7 +127,7 @@ impl<'a> Parser<'a> {
             self.expect(Token::RightParen)?;
         }
 
-        // 解析投影 { id, name }
+        // Parseproject { id, name }
         if self.current() == Token::LeftBrace {
             self.advance();
             while self.current() != Token::RightBrace {
@@ -158,7 +158,7 @@ impl<'a> Parser<'a> {
             Token::Create => { self.advance(); MutationOp::Create }
             Token::Update => { self.advance(); MutationOp::Update }
             Token::Delete => { self.advance(); MutationOp::Delete }
-            _ => return Err(DaoQLError::DslParse("期望 create/update/delete".to_string())),
+            _ => return Err(DaoQLError::DslParse("expect create/update/delete".to_string())),
         };
         let target = self.parse_identifier()?;
         self.expect(Token::LeftParen)?;
@@ -197,7 +197,7 @@ impl<'a> Parser<'a> {
             self.expect(Token::RightParen)?;
         }
         self.expect(Token::LeftBrace)?;
-        // 跳过投影
+        // skipproject
         while self.current() != Token::RightBrace {
             self.advance();
         }
@@ -258,7 +258,7 @@ impl<'a> Parser<'a> {
         match self.advance() {
             Token::Query => {}
             Token::Identifier(s) if s == "query" => {}
-            other => return Err(DaoQLError::DslParse(format!("期望 query，得到 {:?}", other))),
+            other => return Err(DaoQLError::DslParse(format!("expect query，get {:?}", other))),
         }
         self.expect(Token::Colon)?;
         let query_vector = self.parse_vector()?;
@@ -301,14 +301,14 @@ impl<'a> Parser<'a> {
             Token::Bool => Ok("Bool".to_string()),
             Token::Array => Ok("Array".to_string()),
             Token::Map => Ok("Map".to_string()),
-            t => Err(DaoQLError::DslParse(format!("期望标识符，得到 {:?}", t))),
+            t => Err(DaoQLError::DslParse(format!("expect identifier, got {:?}", t))),
         }
     }
 
     fn parse_number(&mut self) -> Result<f64, DaoQLError> {
         match self.advance() {
             Token::Number(n) => Ok(n),
-            t => Err(DaoQLError::DslParse(format!("期望数字，得到 {:?}", t))),
+            t => Err(DaoQLError::DslParse(format!("expect number, got {:?}", t))),
         }
     }
 
@@ -393,7 +393,7 @@ impl<'a> Parser<'a> {
             }
             other => {
                 return Err(DaoQLError::DslParse(format!(
-                    "过滤条件期望 : > < >= <=，得到 {:?}",
+                    "Filter condition expect : > < >= <=, got {:?}",
                     other
                 )));
             }
@@ -443,7 +443,7 @@ mod tests {
                 assert_eq!(target, "Order");
                 assert_eq!(limit, Some(10));
             }
-            _ => panic!("期望 Query"),
+            _ => panic!("expected Query"),
         }
     }
 
@@ -459,7 +459,7 @@ mod tests {
                 assert_eq!(fields[0].name, "amount");
                 assert!(fields[0].required);
             }
-            _ => panic!("期望 Define"),
+            _ => panic!("expected Define"),
         }
     }
 
@@ -473,7 +473,7 @@ mod tests {
                 assert_eq!(op, MutationOp::Create);
                 assert_eq!(target, "Order");
             }
-            _ => panic!("期望 Mutation"),
+            _ => panic!("expected Mutation"),
         }
     }
 
@@ -486,7 +486,7 @@ mod tests {
             DslQuery::Query { filter, .. } => {
                 assert_eq!(filter, Some(FilterExpr::Gt { field: "age".to_string(), value: serde_json::json!(18) }));
             }
-            _ => panic!("期望 Query"),
+            _ => panic!("expected Query"),
         }
     }
 
@@ -503,7 +503,7 @@ mod tests {
                 );
                 assert_eq!(filter, Some(expected));
             }
-            _ => panic!("期望 Query"),
+            _ => panic!("expected Query"),
         }
     }
 
@@ -520,7 +520,7 @@ mod tests {
                 );
                 assert_eq!(filter, Some(expected));
             }
-            _ => panic!("期望 Query"),
+            _ => panic!("expected Query"),
         }
     }
 }

@@ -11,13 +11,13 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! ProjectedLayer — 投影列存储层
+//! ProjectedLayer — projected column storage layer
 //!
-//! 教学说明：
-//! - 将热点字段从 RawLayer 物化为独立列存
-//! - 每列一个 Vec<T>，内存连续，利于 CPU 缓存
-//! - 配合 SIMD 实现向量化聚合
-//! - 教学版简化：仅内存存储，不持久化到磁盘
+//! Educational Notes:
+//! - will hot fields from RawLayer materialize into independent column store
+//! - one per column Vec<T>, memory continuous, favorable for CPU cache
+//! - cooperate with SIMD implement vectorized aggregate
+//! - edu edition simplification: only in-memory store, not persisted to disk
 
 use std::collections::HashMap;
 
@@ -25,7 +25,7 @@ use crate::being::Being;
 use crate::error::DaoQLError;
 use crate::id::BeingId;
 
-/// 投影列
+/// Projectcolumn
 pub struct ProjectedColumn {
     pub name: String,
     pub values: Vec<f64>,
@@ -54,24 +54,24 @@ impl ProjectedColumn {
         self.values.is_empty()
     }
 
-    /// 按 BeingId 查找值（线性搜索，教学版简化）
+    /// Find value by BeingId (linear search, edu edition simplification)
     pub fn get(&self, id: BeingId) -> Option<f64> {
         self.being_ids.iter().position(|&bid| bid == id)
             .map(|idx| self.values[idx])
     }
 
-    /// 遍历所有值（用于聚合 fast path）
+    /// Traverseallvalue（used forAggregate fast path）
     pub fn values(&self) -> impl Iterator<Item = f64> + '_ {
         self.values.iter().copied()
     }
 
-    /// 直接访问底层值切片（用于 SIMD 批量处理）
+    /// directly access lower layer value slice（used for SIMD batch processing）
     pub fn values_slice(&self) -> &[f64] {
         &self.values
     }
 }
 
-/// 投影层 — 管理多列
+/// Projected layer — manage multiple columns
 pub struct ProjectedLayer {
     columns: HashMap<String, ProjectedColumn>,
 }
@@ -83,13 +83,13 @@ impl ProjectedLayer {
         }
     }
 
-    /// 注册投影列
+    /// Registerprojectcolumn
     pub fn register(&mut self, name: impl Into<String>) {
         let name = name.into();
         self.columns.entry(name.clone()).or_insert_with(|| ProjectedColumn::new(name));
     }
 
-    /// 从 Being 提取并插入投影列
+    /// From Being extract and insert projected column
     pub fn project(&mut self, being: &Being) -> Result<(), DaoQLError> {
         for (col_name, col) in self.columns.iter_mut() {
             if let Some(value) = extract_value(being, col_name) {
@@ -99,22 +99,22 @@ impl ProjectedLayer {
         Ok(())
     }
 
-    /// 获取列
+    /// Get column
     pub fn column(&self, name: &str) -> Option<&ProjectedColumn> {
         self.columns.get(name)
     }
 
-    /// 获取列（可变）
+    /// Get column（mutable）
     pub fn column_mut(&mut self, name: &str) -> Option<&mut ProjectedColumn> {
         self.columns.get_mut(name)
     }
 
-    /// 所有列名
+    /// all column names
     pub fn column_names(&self) -> Vec<&str> {
         self.columns.keys().map(|s| s.as_str()).collect()
     }
 
-    /// 总记录数（取第一列的长度）
+    /// Total record count (take first column length)
     pub fn row_count(&self) -> usize {
         self.columns.values().next().map(|c| c.len()).unwrap_or(0)
     }
@@ -126,13 +126,13 @@ impl Default for ProjectedLayer {
     }
 }
 
-/// 从 Being 提取数值（教学版简化：仅支持部分字段）
+/// Extract numeric value from Being (edu edition simplification: only some fields)
 fn extract_value(being: &Being, field: &str) -> Option<f64> {
     match field {
         "weight" => Some(being.core.weight),
         "priority" => Some(being.core.priority as f64),
         _ => {
-            // 尝试从动态字段提取
+            // try secondary dynamic field extract
             being.ext.as_ref()?.dynamic_attrs.get(field)
                 .and_then(|v| v.as_f64())
         }

@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 查询引擎
+//! Query Engine
 //!
-//! 教学说明：
-//! - 查询路由：判定走哪条数据引擎
-//! - 查询计划：简单计划生成
-//! - 执行器：迭代器模式，惰性求值
+//! Educational Notes:
+//! - Query route: determine which data engine
+//! - Queryplan：simpleplangenerate
+//! - Execute：iterationmode，lazy evaluation
 
 pub mod executor;
 pub mod planner;

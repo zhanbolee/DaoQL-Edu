@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 时间范围索引
+//! Time Range Index
 //!
-//! 教学说明：
-//! - 使用 redb B+Tree，键 = 时间戳（i64，纳秒），值 = BeingId 列表（postcard 序列化）
-//! - 支持 created_at/updated_at 范围查询
-//! - 最终一致性：异步批量更新（事务不阻塞）
+//! Educational Notes:
+//! - use redb B+Tree, key = timestamp (i64, nanoseconds), value = BeingId list (postcard serialize)
+//! - support created_at/updated_at rangeQuery
+//! - eventual consistency: async batch update (transaction not blocked)
 
 use std::path::Path;
 
@@ -25,20 +25,20 @@ use redb::{Database, ReadableTable, ReadableTableMetadata, TableDefinition};
 use crate::error::DaoQLError;
 use crate::id::BeingId;
 
-/// redb 表定义
-/// 键 = 时间戳（毫秒粒度，用于减少键数量）
-/// 值 = postcard 序列化的 BeingId 列表
+/// redb table definition
+/// Key = timestamp (millisecond Granule, used for reducing key quantity)
+/// Value = postcard serialized BeingId list
 const TIME_TABLE: TableDefinition<i64, &[u8]> = TableDefinition::new("time_index");
 
-/// 时间索引
+/// Time index
 pub struct TimeIndex {
     db: Database,
-    /// 时间粒度：毫秒（将纳秒时间戳按毫秒分组存储）
+    /// Time Granule: milliseconds (will group nanosecond timestamp by milliseconds)
     granularity_ms: i64,
 }
 
 impl TimeIndex {
-    /// 打开或创建索引数据库
+    /// Open or create index database
     pub fn open(path: impl AsRef<Path>) -> Result<Self, DaoQLError> {
         let db = Database::create(path)?;
         let tx = db.begin_write()?;
@@ -48,16 +48,16 @@ impl TimeIndex {
         tx.commit()?;
         Ok(Self {
             db,
-            granularity_ms: 1000, // 1 秒粒度
+            granularity_ms: 1000, // 1 second Granule
         })
     }
 
-    /// 将纳秒时间戳转换为存储键（毫秒）
+    /// will convert nanosecond timestamp to store key (milliseconds)
     fn key_of(&self, timestamp_ns: i64) -> i64 {
         timestamp_ns / 1_000_000 / self.granularity_ms * self.granularity_ms
     }
 
-    /// 添加 Being 到时间索引
+    /// Add Being to time index
     pub fn add(&self, timestamp_ns: i64, id: BeingId) -> Result<(), DaoQLError> {
         let key = self.key_of(timestamp_ns);
         let tx = self.db.begin_write()?;
@@ -77,7 +77,7 @@ impl TimeIndex {
         Ok(())
     }
 
-    /// 范围查询：返回 [start_ns, end_ns) 内的所有 BeingId
+    /// Range query: return all BeingId in [start_ns, end_ns)
     pub fn range_query(
         &self,
         start_ns: i64,
@@ -96,20 +96,20 @@ impl TimeIndex {
             result.extend(ids);
         }
 
-        // 去重
+        // Deduplicate
         result.sort();
         result.dedup();
         Ok(result)
     }
 
-    /// 统计条目数（键数量）
+    /// Statisticsentry count（keyquantity）
     pub fn len(&self) -> Result<u64, DaoQLError> {
         let tx = self.db.begin_read()?;
         let table = tx.open_table(TIME_TABLE)?;
         Ok(table.len()?)
     }
 
-    /// 是否为空
+    /// Is empty
     pub fn is_empty(&self) -> Result<bool, DaoQLError> {
         Ok(self.len()? == 0)
     }
@@ -133,10 +133,10 @@ mod tests {
         let index = TimeIndex::open(&path).unwrap();
         let id1 = BeingId::new();
         let id2 = BeingId::new();
-        let ts = 1_000_000_000_i64 * 1_000_000_000; // 某个纳秒时间戳
+        let ts = 1_000_000_000_i64 * 1_000_000_000; // some nanosecond timestamp
 
         index.add(ts, id1).unwrap();
-        index.add(ts + 500_000_000, id2).unwrap(); // 同一秒内
+        index.add(ts + 500_000_000, id2).unwrap(); // within same second
 
         let results = index.range_query(ts - 1, ts + 2_000_000_000).unwrap();
         assert!(results.contains(&id1));
@@ -152,11 +152,11 @@ mod tests {
         let ids: Vec<_> = (0..10).map(|_| BeingId::new()).collect();
 
         for (i, id) in ids.iter().enumerate() {
-            let ts = (i as i64) * 2_000_000_000; // 每 2 秒一个
+            let ts = (i as i64) * 2_000_000_000; // every 2 seconds
             index.add(ts, *id).unwrap();
         }
 
-        // 查询第 3 到第 6 个（索引 2 到 5）
+        // Query 3rd to 6th (index 2 to 5)
         let start = 2 * 2_000_000_000;
         let end = 6 * 2_000_000_000;
         let results = index.range_query(start, end).unwrap();

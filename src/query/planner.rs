@@ -11,20 +11,20 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 查询计划器
+//! Query Planner
 //!
-//! 教学说明：
-//! - 简单查询计划：解析查询 → 选择引擎 → 生成执行步骤
-//! - 教学版不做复杂优化（如谓词下推、连接重排）
+//! Educational Notes:
+//! - Simple query plan: Parse query → select engine → generate execute steps
+//! - edu edition doesn't do complex optimization (like predicate pushdown, connection reordering)
 
 
-/// 查询计划
+/// Queryplan
 #[derive(Debug, Clone)]
 pub struct QueryPlan {
     pub steps: Vec<PlanStep>,
 }
 
-/// 计划步骤
+/// plan step
 #[derive(Debug, Clone)]
 pub enum PlanStep {
     Scan { def: String, filter: Option<String> },

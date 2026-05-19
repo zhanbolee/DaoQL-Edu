@@ -11,34 +11,34 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 图先验插入 — 利用 Relation 邻接节点作为 HNSW 搜索种子
+//! Graph-prior insertion — uses Relation-adjacent nodes as HNSW search seeds
 //!
-//! 教学说明：
-//! - 传统 HNSW 插入：从全局入口点开始搜索
-//! - 图先验：如果新节点与已知节点有 Relation，从邻接节点开始搜索
-//! - 效果：有关系的节点在向量空间中通常也相近，减少搜索步数
-//! - 特别适用于：知识图谱 + 向量联合场景
+//! Educational Notes:
+//! - Traditional HNSW insert: start search from global entry point
+//! - Graph prior: if new node and known node have relation, start search from adjacent node
+//! - effect: nodes with relations are typically close in vector space, reduce search steps
+//! - Especially suitable for: knowledge graph + vector joint scenarios
 
 use crate::error::DaoQLError;
 use crate::id::BeingId;
 use crate::vector::hnsw::HnswIndex;
 
-/// 图先验种子选择器
+/// Graph prior seed selection
 pub struct GraphPrior;
 
 impl GraphPrior {
-    /// 选择 HNSW 插入的种子节点
+    /// Select HNSW insert seed node
     ///
-    /// 策略：
-    /// 1. 如果邻接节点已存在于 HNSW 中，返回这些节点作为种子
-    /// 2. 否则，返回全局入口点
+    /// Policy：
+    /// 1. if adjacent nodes already exist in HNSW, return these nodes as seeds
+    /// 2. otherwise, return global entry point
     pub fn select_seed(
         _hnsw: &HnswIndex,
         _being_id: BeingId,
         _neighbors: &[BeingId],
     ) -> Result<Vec<BeingId>, DaoQLError> {
-        // 教学版简化：直接返回邻接节点
-        // 生产版应检查节点是否已在 HNSW 中
+        // edu edition simplification: return adjacent nodes directly
+        // production version should check whether node already in HNSW
         Ok(_neighbors.to_vec())
     }
 }

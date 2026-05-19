@@ -11,14 +11,14 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 向量引擎（Vector Engine）
+//! Vector Engine（Vector Engine）
 //!
-//! 教学说明：
-//! - HNSW：多层图结构，近似最近邻搜索
-//! - SIMD 距离：Cosine / L2 / Dot 的向量化加速
-//! - 量化：标量量化(SQ) / 二进制量化(BQ)，减少内存占用
-//! - 图先验：利用 Relation 邻接节点作为 HNSW 插入种子
-//! - RCU 热更新：读无锁，写复制
+//! Educational Notes:
+//! - HNSW: multi-layer graph structure, approximate nearest neighbor search
+//! - SIMD distance: Cosine / L2 / Dot vectorized acceleration
+//! - Quantization: Scalar quantization (SQ) / binary quantization (BQ), reduce memory usage
+//! - Graph prior: use relation adjacent nodes as HNSW insert seeds
+//! - RCU hot update: read lock-free, write copy
 
 pub mod distance;
 pub mod graph_prior;

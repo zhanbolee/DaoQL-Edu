@@ -11,34 +11,34 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! Relation（关系）— Being 之间的连接
+//! Relation — connections between Beings
 //!
-//! 教学说明：
-//! - Relation 是有向/无向边，连接两个 Being
-//! - 边本身也是定长记录（EdgeRecord, 256 bytes），存储在 mmap 中
-//! - 通过 next_out/next_in 指针形成邻接链表，实现免索引邻接
-//! - 教学版简化：不支持时态有效性、weight、metadata
+//! Educational Notes:
+//! - Relation is a directed/undirected edge connecting two Beings
+//! - edge itself is also a fixed-length record (EdgeRecord, 256 bytes), stored in mmap
+//! - Form adjacency linked list via next_out/next_in pointers, achieving index-free adjacency
+//! - Edu edition simplification: no temporal validity, weight, metadata
 
 use serde::{Deserialize, Serialize};
 
 use crate::id::{BeingId, RelationTypeCode};
 
-/// 关系类型定义
+/// RelationType definition
 ///
-/// 如：HAS_PARENT=1, CREATED_BY=2, BELONGS_TO=3
-/// 类型编码是紧凑的 u16，便于存储在 EdgeRecord 中。
+/// e.g.: HAS_PARENT=1, CREATED_BY=2, BELONGS_TO=3
+/// Typeencoding is compact u16，convenient for storage in EdgeRecord in。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RelationType {
-    /// 关系类型编码
+    /// Relation type code
     pub code: RelationTypeCode,
-    /// 关系名称
+    /// Relation name
     pub name: String,
-    /// 是否有向
+    /// Whether directed
     pub directed: bool,
 }
 
 impl RelationType {
-    /// 创建新关系类型
+    /// Create new relation type
     pub fn new(code: RelationTypeCode, name: impl Into<String>, directed: bool) -> Self {
         Self {
             code,
@@ -48,29 +48,29 @@ impl RelationType {
     }
 }
 
-/// 关系实例
+/// Relation instance
 ///
-/// 一条具体的边，连接 from_id → to_id。
+/// A specific edge, connecting from_id → to_id.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Relation {
-    /// 源实体
+    /// Source entity
     pub from_id: BeingId,
-    /// 目标实体
+    /// Target entity
     pub to_id: BeingId,
-    /// 关系类型编码
+    /// Relation type code
     pub relation_type: RelationTypeCode,
-    /// 是否有向
+    /// Whether directed
     pub directed: bool,
-    /// 创建时间
+    /// Creation time
     pub created_at: i64,
-    /// 名称（可选）
+    /// Name（optional）
     pub name: String,
-    /// 权重（可选）
+    /// Weight（optional）
     pub weight: f64,
 }
 
 impl Relation {
-    /// 创建新关系
+    /// CreatenewRelation
     pub fn new(
         from_id: BeingId,
         to_id: BeingId,
@@ -88,19 +88,19 @@ impl Relation {
         }
     }
 
-    /// 设置名称（链式）
+    /// Set name（chain）
     pub fn with_name(mut self, name: impl Into<String>) -> Self {
         self.name = name.into();
         self
     }
 
-    /// 设置权重（链式）
+    /// Setweight（chain）
     pub fn with_weight(mut self, weight: f64) -> Self {
         self.weight = weight;
         self
     }
 
-    /// 反转方向（用于无向边或反向查询）
+    /// reverse direction（for undirected edges or reverse queries）
     pub fn reversed(&self) -> Self {
         Self {
             from_id: self.to_id,
@@ -113,18 +113,18 @@ impl Relation {
         }
     }
 
-    /// 序列化为 postcard
+    /// Serialize to postcard
     pub fn to_bytes(&self) -> Result<Vec<u8>, crate::error::DaoQLError> {
         Ok(postcard::to_allocvec(self)?)
     }
 
-    /// 从 postcard 反序列化
+    /// From postcard deserialize
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, crate::error::DaoQLError> {
         Ok(postcard::from_bytes(bytes)?)
     }
 }
 
-/// 关系类型注册表
+/// Relationtype registry
 pub struct RelationTypeRegistry {
     types: Vec<RelationType>,
     name_to_code: std::collections::HashMap<String, RelationTypeCode>,
@@ -138,7 +138,7 @@ impl RelationTypeRegistry {
         }
     }
 
-    /// 注册新类型
+    /// Registernewtype
     pub fn register(&mut self, rt: RelationType) {
         if self.name_to_code.contains_key(&rt.name) {
             return;
@@ -147,18 +147,18 @@ impl RelationTypeRegistry {
         self.types.push(rt);
     }
 
-    /// 按名称查找
+    /// Lookup by name
     pub fn by_name(&self, name: &str) -> Option<&RelationType> {
         let code = self.name_to_code.get(name)?;
         self.types.iter().find(|t| t.code == *code)
     }
 
-    /// 按编码查找
+    /// Lookup by code
     pub fn by_code(&self, code: RelationTypeCode) -> Option<&RelationType> {
         self.types.iter().find(|t| t.code == code)
     }
 
-    /// 获取所有类型
+    /// Getalltype
     pub fn all(&self) -> &[RelationType] {
         &self.types
     }

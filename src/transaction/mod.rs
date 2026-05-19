@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 事务管理器
+//! Transaction Manager
 //!
-//! 教学说明：
-//! - Read Committed 隔离级别
-//! - PerBeingLock 细粒度锁
-//! - 两阶段提交：排序加锁 → 执行 → WAL → 释放
+//! Educational Notes:
+//! - Read Committed isolation level
+//! - Per-BeingLock fine-grained lock
+//! - Two-phase commit：Sort and lock → Execute → WAL → release
 
 pub mod committer;
 pub mod lock_manager;
@@ -26,10 +26,10 @@ pub use committer::Transaction;
 pub use lock_manager::LockManager;
 pub use validator::ConstraintValidator;
 
-/// 事务 ID（单调递增）
+/// Transaction ID (monotonically increasing)
 pub type TxId = u64;
 
-/// 活跃事务集合
+/// Active transaction set
 pub struct ActiveTxSet {
     pub active: std::sync::RwLock<std::collections::BTreeSet<TxId>>,
 }

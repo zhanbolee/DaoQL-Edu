@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 查询构建器
+//! Query Builder
 //!
-//! 教学说明：
-//! - 链式 API：query().being(id).with_relations(2).fetch_one()
-//! - 类型安全：编译时检查 API 调用顺序
-//! - 惰性求值：直到 fetch 才执行
+//! Educational Notes:
+//! - chain API：query().being(id).with_relations(2).fetch_one()
+//! - type-safe: compile-time check API call order
+//! - lazy evaluation: execute until fetch
 
 use std::cell::RefCell;
 
@@ -30,7 +30,7 @@ use crate::query::executor::QueryResult;
 use crate::version::HistoryMode;
 use crate::vector::hnsw::HnswIndex;
 
-/// 查询构建器
+/// Query builder
 pub struct QueryBuilder<'a> {
     graph: &'a RefCell<GraphStore>,
     vector_indices: &'a std::collections::HashMap<String, HnswIndex>,
@@ -74,25 +74,25 @@ impl<'a> QueryBuilder<'a> {
         }
     }
 
-    /// 按 ID 查询（使用 UUID→Offset B+Tree 索引）
+    /// By ID Query（use UUID→Offset B+Tree index）
     pub fn being(mut self, id: BeingId) -> Self {
         self.target = QueryTarget::Being(id);
         self
     }
 
-    /// 按类型扫描
+    /// BytypeScan
     pub fn scan(mut self, def: impl Into<String>) -> Self {
         self.target = QueryTarget::Scan { def: def.into() };
         self
     }
 
-    /// 向量相似搜索
+    /// VectorSimilarity search
     pub fn similar_to(mut self, vector: Vec<f32>, k: usize) -> Self {
         self.target = QueryTarget::Similar { vector, k };
         self
     }
 
-    /// 添加过滤条件
+    /// Add filter condition
     pub fn filter(mut self, field: impl Into<String>, op: impl Into<String>, value: serde_json::Value) -> Self {
         self.filters.push(Filter {
             field: field.into(),
@@ -102,33 +102,33 @@ impl<'a> QueryBuilder<'a> {
         self
     }
 
-    /// 限制数量
+    /// Limit count
     pub fn limit(mut self, n: usize) -> Self {
         self.limit = Some(n);
         self
     }
 
-    /// 带关系遍历
+    /// With relation traversal
     pub fn with_relations(mut self, depth: usize) -> Self {
         self.with_relations = Some(depth);
         self
     }
 
-    /// 版本回溯
+    /// Versionbacktracking
     pub fn history(mut self, mode: HistoryMode) -> Self {
         self.history = Some(mode);
         self
     }
 
-    /// 聚合查询
+    /// Aggregate query
     pub fn aggregate(mut self, column: impl Into<String>, op: AggregateOp) -> Self {
         self.aggregate = Some((column.into(), op));
         self
     }
 
-    /// 执行查询，路由到图引擎
+    /// ExecuteQuery，routetographengine
     pub fn execute(self) -> Result<QueryResult, DaoQLError> {
-        // ── Fast path: 扫描 + 单列数值过滤 + 聚合 → 直接列存过滤聚合 ──
+        // ── Fast path: scan + single-column numeric filter + aggregate → direct columnar filter aggregate ──
         if self.aggregate.is_some() && self.filters.len() == 1 {
             if let QueryTarget::Scan { ref def } = self.target {
                 if def.is_empty() {
@@ -234,7 +234,7 @@ impl<'a> QueryBuilder<'a> {
             }
         }
 
-        // ── Fast path: 无过滤的全表扫描 + 聚合 → 跳过图扫描，直接列存聚合 ──
+        // ── Fast path: unfiltered full table scan + aggregate → skip graph scan, direct columnar aggregate ──
         if self.filters.is_empty() && self.aggregate.is_some() {
             if let QueryTarget::Scan { ref def } = self.target {
                 if def.is_empty() {
@@ -341,7 +341,7 @@ impl<'a> QueryBuilder<'a> {
             }
         }
 
-        // 应用过滤器
+        // apply filter
         for filter in &self.filters {
             items.retain(|being| {
                 let field_value = match filter.field.as_str() {
@@ -389,11 +389,11 @@ impl<'a> QueryBuilder<'a> {
             });
         }
 
-        // 聚合模式：对查询结果集中的 Being 从 ProjectedLayer 提取值并聚合
+        // Aggregate mode: for query result set extract value from Being's ProjectedLayer and aggregate
         if let Some((col_name, op)) = self.aggregate {
             let column = self.column.borrow();
             if let Some(col) = column.column(&col_name) {
-                // 简单聚合使用 inline accumulators，避免 Vec 分配
+                // simpleAggregateuse inline accumulators，avoid Vec allocate
                 let (value, count) = match op {
                     crate::column::aggregation::AggregateOp::Count => {
                         let c = items.iter().filter(|b| col.get(b.core.id).is_some()).count();
@@ -444,7 +444,7 @@ impl<'a> QueryBuilder<'a> {
                         if c > 0 { (max, c) } else { (0.0, 0) }
                     }
                     _ => {
-                        // 复杂聚合（Median/Stddev/Variance）回退到 Vec 路径
+                        // complex aggregate (Median/Stddev/Variance) fallback to Vec path
                         let mut values = Vec::new();
                         for being in &items {
                             if let Some(v) = col.get(being.core.id) {
@@ -468,13 +468,13 @@ impl<'a> QueryBuilder<'a> {
         Ok(QueryResult { items, aggregate_value: None, aggregate_op: None })
     }
 
-    /// 获取单个结果
+    /// Getsingleresult
     pub fn fetch_one(self) -> Result<Option<Being>, DaoQLError> {
         let mut result = self.execute()?;
         Ok(result.items.pop())
     }
 
-    /// 获取所有结果
+    /// Getallresult
     pub fn fetch_all(self) -> Result<Vec<Being>, DaoQLError> {
         Ok(self.execute()?.items)
     }

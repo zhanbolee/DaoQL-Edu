@@ -11,19 +11,19 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! HNSW（Hierarchical Navigable Small World）索引
+//! HNSW (Hierarchical Navigable Small World) Index
 //!
-//! 教学说明：
-//! - HNSW 是多层图结构：层数越高，连接越稀疏（类似跳表）
-//! - 插入时从顶层开始贪心搜索最近邻，逐层下降
-//! - ef_construction 控制构建时的搜索宽度
-//! - M 控制每层最大出度
-//! - **标准教科书实现**：HashMap + HashSet + 标量距离计算
+//! Educational Notes:
+//! - HNSW is multi-layer graph structure: higher layer count, sparser connections (like skip list)
+//! - insert starts greedy search nearest neighbors from top layer, layer-by-layer descent
+//! - ef_construction controls search width during build
+//! - M controls max out-degree per layer
+//! - **standard textbook implementation**: HashMap + HashSet + scalar distance compute
 //!
-//! 算法复杂度：
-//! - 搜索：O(log N) 期望
-//! - 插入：O(log N × M) 期望
-//! - 内存：O(N × M × dim × sizeof(f32))
+//! algorithmcomplexdegree：
+//! - search：O(log N) expect
+//! - insert：O(log N × M) expect
+//! - memory：O(N × M × dim × sizeof(f32))
 
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
@@ -33,7 +33,7 @@ use crate::error::DaoQLError;
 use crate::id::BeingId;
 use crate::vector::distance::{compute_distance, DistanceMetric};
 
-/// 搜索结果（公开 API）
+/// Search result (public API)
 #[derive(Debug, Clone, PartialEq)]
 pub struct SearchResult {
     pub id: BeingId,
@@ -54,47 +54,47 @@ impl Ord for SearchResult {
     }
 }
 
-/// HNSW 节点
+/// HNSW Node
 #[derive(Debug, Clone)]
 pub struct HnswNode {
     pub id: BeingId,
     pub vector: Vec<f32>,
-    /// 每层连接的邻居（层号 → 邻居的 BeingId 列表）
+    /// per layer connected neighbors (layer number → neighbor BeingId list)
     pub connections: Vec<Vec<BeingId>>,
-    /// 最高层号
+    /// highest layer number
     pub max_level: usize,
 }
 
-/// HNSW 索引
+/// HNSW index
 ///
-/// 标准教科书实现：
-/// - `nodes: HashMap<BeingId, HnswNode>` — 按 BeingId 索引
-/// - `connections` 存储 `BeingId` 而非 `usize`
-/// - `entry_point` 存储 `BeingId`
-/// - `visited` 使用 `HashSet<BeingId>`（搜索时分配）
-/// - 距离计算使用标量 `compute_distance`
+/// Standard textbook implementation：
+/// - `nodes: HashMap<BeingId, HnswNode>` — by BeingId index
+/// - `connections` store `BeingId` rather than `usize`
+/// - `entry_point` store `BeingId`
+/// - `visited` uses `HashSet<BeingId>` (allocated during search)
+/// - distancecomputeusescalar `compute_distance`
 pub struct HnswIndex {
-    /// 节点存储（按 BeingId 索引）
+    /// Nodestore（by BeingId index）
     nodes: HashMap<BeingId, HnswNode>,
-    /// 维度
+    /// Dimension
     dim: usize,
-    /// 每层最大出度
+    /// Max out-degree per layer
     m: usize,
-    /// 构建时搜索宽度
+    /// Search width during build
     ef_construction: usize,
-    /// 查询时搜索宽度
+    /// Search width during query
     ef_search: usize,
-    /// 全局入口点（BeingId）
+    /// GlobalEntry point（BeingId）
     entry_point: Option<BeingId>,
-    /// 当前最大层
+    /// CurrentMax level
     max_level: usize,
-    /// 距离度量
+    /// Distance metric
     metric: DistanceMetric,
-    /// 随机数生成器
+    /// Random number generator
     rng: rand::rngs::StdRng,
-    /// 小数据集时切换到暴力扫描的阈值
+    /// switch to brute-force scan threshold for small datasets
     full_scan_threshold: usize,
-    /// 扁平化嵌入缓存（用于暴力扫描）
+    /// flattened embed cache (used for brute-force scan)
     flat_embeddings: Vec<f32>,
     flat_ids: Vec<BeingId>,
 }
@@ -117,13 +117,13 @@ impl HnswIndex {
         }
     }
 
-    /// 设置距离度量
+    /// SetDistance metric
     pub fn with_metric(mut self, metric: DistanceMetric) -> Self {
         self.metric = metric;
         self
     }
 
-    /// 计算随机层数（指数衰减分布）
+    /// Compute random layer count (count decay distribution)
     fn random_level(&mut self) -> usize {
         let mut level = 0;
         let m_l = 1.0 / (self.m as f64).ln();
@@ -133,12 +133,12 @@ impl HnswIndex {
         level
     }
 
-    /// 计算节点到查询向量的距离
+    /// ComputeNodetoQueryvectordistance
     fn distance_to_query(&self, node: &HnswNode, query: &[f32]) -> f32 {
         compute_distance(&node.vector, query, self.metric)
     }
 
-    /// 贪心搜索单层：找到离查询最近的 1 个节点
+    /// Greedy search single layer: find 1 node closest to query
     fn greedy_search_layer(&self, entry_id: BeingId, query: &[f32], level: usize) -> BeingId {
         let entry_node = self.nodes.get(&entry_id).unwrap();
         let mut current = entry_id;
@@ -170,8 +170,8 @@ impl HnswIndex {
         current
     }
 
-    /// 搜索单层，返回 ef 个最近邻
-    /// 使用 HashSet<BeingId> 做 visited，BinaryHeap<SearchResult> 做 candidates 和 results
+    /// Search single layer, return ef nearest neighbors
+    /// Use HashSet<BeingId> do visited，BinaryHeap<SearchResult> do candidates and results
     fn search_layer(
         &self,
         entry_id: BeingId,
@@ -199,7 +199,7 @@ impl HnswIndex {
         while let Some(current) = candidates.pop() {
             let current_dist = -current.distance;
 
-            // 终止条件：当前候选的距离已大于结果中最差的
+            // termination condition: current candidate distance already greater than worst in result
             if let Some(worst) = results.peek() {
                 if current_dist > worst.distance && results.len() >= ef {
                     break;
@@ -231,7 +231,7 @@ impl HnswIndex {
                     });
 
                     if results.len() > ef {
-                        results.pop(); // 移除最远的
+                        results.pop(); // remove farthest
                     }
                 }
             }
@@ -240,18 +240,18 @@ impl HnswIndex {
         results.into_sorted_vec()
     }
 
-    /// 启发式选择邻居（保留多样性连接）
+    /// Heuristic neighbor selection (preserve diverse connections)
     fn select_neighbors(
         &self,
         candidates: &[SearchResult],
         m: usize,
     ) -> Vec<SearchResult> {
-        // 简化版：直接取最近的 m 个
-        // 生产版应使用启发式（考虑角度多样性）
+        // simplified version: directly take nearest m 
+        // production version should use heuristic (considering angular diversity)
         candidates.iter().take(m).cloned().collect()
     }
 
-    /// 插入向量（Cosine 模式下自动预归一化）
+    /// Insert vector (Cosine mode auto pre-normalization)
     pub fn insert(&mut self, id: BeingId, mut vector: Vec<f32>) -> Result<(), DaoQLError> {
         if vector.len() != self.dim {
             return Err(DaoQLError::Query(crate::error::QueryError::DimensionMismatch {
@@ -260,7 +260,7 @@ impl HnswIndex {
             }));
         }
 
-        // Cosine 预归一化：存储时 L2-normalize，搜索时退化为 1.0 - dot
+        // Cosine Pre-normalization: L2-normalize on store, degrade to 1.0 - dot on search
         if self.metric == DistanceMetric::Cosine {
             crate::vector::distance::l2_normalize(&mut vector);
         }
@@ -268,7 +268,7 @@ impl HnswIndex {
         let level = self.random_level();
         let mut connections: Vec<Vec<BeingId>> = vec![Vec::new(); level + 1];
 
-        // 缓存向量用于扁平化存储（在移动前克隆）
+        // cache vector used for flattened store (clone before move)
         let vector_for_flat = vector.clone();
 
         let new_node = HnswNode {
@@ -278,7 +278,7 @@ impl HnswIndex {
             max_level: level,
         };
 
-        // 空索引：直接设为入口点
+        // empty index: directly set as entry point
         if self.entry_point.is_none() {
             self.entry_point = Some(id);
             self.max_level = level;
@@ -290,13 +290,13 @@ impl HnswIndex {
 
         let entry_id = self.entry_point.unwrap();
 
-        // 1. 从顶层开始搜索入口点
+        // 1. Search entry point from top level
         let mut current_entry = entry_id;
         for l in (level + 1)..=self.max_level {
             current_entry = self.greedy_search_layer(current_entry, &new_node.vector, l);
         }
 
-        // 2. 从插入层开始，逐层连接
+        // 2. Start from insertion layer, connect layer by layer
         for l in (0..=level.min(self.max_level)).rev() {
             let neighbors = self.search_layer(
                 current_entry,
@@ -308,11 +308,11 @@ impl HnswIndex {
 
             for neighbor in &selected {
                 connections[l].push(neighbor.id);
-                // 双向连接
+                // Bidirectional connection
                 if let Some(neighbor_node) = self.nodes.get_mut(&neighbor.id) {
                     if l < neighbor_node.connections.len() {
                         neighbor_node.connections[l].push(id);
-                        // 限制出度
+                        // restrict out-degree
                         if neighbor_node.connections[l].len() > self.m * 2 {
                             neighbor_node.connections[l].truncate(self.m * 2);
                         }
@@ -325,26 +325,26 @@ impl HnswIndex {
             }
         }
 
-        // 3. 更新全局入口点
+        // 3. Update global entry point
         if level > self.max_level {
             self.max_level = level;
             self.entry_point = Some(id);
         }
 
-        // 插入节点
+        // insertNode
         let mut final_node = new_node;
         final_node.connections = connections;
         self.nodes.insert(id, final_node);
 
-        // 更新扁平化缓存
+        // Update flattened cache
         self.flat_ids.push(id);
         self.flat_embeddings.extend_from_slice(&vector_for_flat);
 
         Ok(())
     }
 
-    /// 暴力扫描搜索（小数据集时比 HNSW 遍历更快）
-    /// 使用扁平化嵌入数组提升 cache locality
+    /// brute-force scan search (faster than HNSW traversal for small datasets)
+    /// use flattened embed count group lifting cache locality
     fn search_brute_force(&self, query: &[f32], k: usize) -> Vec<SearchResult> {
         let n = self.flat_ids.len();
         let mut results = Vec::with_capacity(n);
@@ -373,7 +373,7 @@ impl HnswIndex {
             return Ok(Vec::new());
         }
 
-        // Cosine 模式下预归一化 query
+        // Cosine mode pre-normalization query
         let query_normalized: Vec<f32>;
         let q = if self.metric == DistanceMetric::Cosine {
             let mut q = query.to_vec();
@@ -384,7 +384,7 @@ impl HnswIndex {
             query
         };
 
-        // 小数据集：暴力扫描更快（避免 HNSW 遍历开销）
+        // small dataset: brute-force scan faster (avoid HNSW traversal overhead)
         if self.nodes.len() <= self.full_scan_threshold {
             return Ok(self.search_brute_force(q, k));
         }
@@ -394,20 +394,20 @@ impl HnswIndex {
             None => return Ok(Vec::new()),
         };
 
-        // 从顶层搜索入口点
+        // Search entry point from top level
         let mut current = entry_id;
         for l in (1..=self.max_level).rev() {
             current = self.greedy_search_layer(current, q, l);
         }
 
-        // 在第 0 层搜索 k 个最近邻
+        // search k nearest neighbors at layer 0
         let ef = k.max(self.ef_search);
         let mut results = self.search_layer(current, q, 0, ef);
         results.truncate(k);
         Ok(results)
     }
 
-    /// 批量插入向量
+    /// BatchInsert vector
     pub fn insert_batch(&mut self, items: &[(BeingId, Vec<f32>)]) -> Result<(), DaoQLError> {
         for (id, vec) in items {
             self.insert(*id, vec.clone())?;
@@ -415,7 +415,7 @@ impl HnswIndex {
         Ok(())
     }
 
-    /// 节点数量
+    /// Node count
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
@@ -439,7 +439,7 @@ mod tests {
     fn test_hnsw_insert_and_search() {
         let mut index = HnswIndex::new(16, 8, 50, 32);
 
-        // 插入 100 个随机向量
+        // insert 100 randomvector
         for _ in 0..100 {
             let id = BeingId::new();
             let vec = random_vector(16);
@@ -448,7 +448,7 @@ mod tests {
 
         assert_eq!(index.len(), 100);
 
-        // 搜索
+        // search
         let query = random_vector(16);
         let results = index.search(&query, 10).unwrap();
         assert_eq!(results.len(), 10);
@@ -459,7 +459,7 @@ mod tests {
         let dim = 32;
         let mut index = HnswIndex::new(dim, 16, 100, 64);
 
-        // 插入 1000 个向量
+        // insert 1000 vector
         let n = 1000;
         let mut vectors: Vec<(BeingId, Vec<f32>)> = Vec::with_capacity(n);
         for _ in 0..n {
@@ -469,19 +469,19 @@ mod tests {
             vectors.push((id, vec));
         }
 
-        // 随机查询，检查召回率
+        // random query, check recall rate
         let mut total_recall = 0.0;
         let test_queries = 50;
 
         for _ in 0..test_queries {
             let query = random_vector(dim);
 
-            // HNSW 搜索结果
+            // HNSW search results
             let hnsw_results = index.search(&query, 10).unwrap();
             let hnsw_ids: std::collections::HashSet<_> =
                 hnsw_results.iter().map(|r| r.id).collect();
 
-            // 暴力搜索结果（ground truth）
+            // Brute force searchresult（ground truth）
             let mut all_dists: Vec<_> = vectors
                 .iter()
                 .map(|(id, vec)| {
@@ -493,14 +493,14 @@ mod tests {
             let brute_ids: std::collections::HashSet<_> =
                 all_dists.iter().take(10).map(|(id, _)| *id).collect();
 
-            // 计算召回率
+            // compute recall rate
             let intersection: Vec<_> = hnsw_ids.intersection(&brute_ids).collect();
             total_recall += intersection.len() as f64 / 10.0;
         }
 
         let avg_recall = total_recall / test_queries as f64;
-        println!("HNSW 平均召回率: {:.2}", avg_recall);
-        assert!(avg_recall > 0.7, "召回率过低: {}", avg_recall);
+        println!("HNSW average recall rate: {:.2}", avg_recall);
+        assert!(avg_recall > 0.7, "recall rate too low: {}", avg_recall);
     }
 
     #[test]

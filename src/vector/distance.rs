@@ -11,18 +11,18 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! SIMD 距离计算
+//! SIMD Distance Computation
 //!
-//! 教学说明：
-//! - 向量搜索的核心是距离计算（Cosine / L2 / Dot）
-//! - SIMD 加速：一次处理 4-8 个维度，理论加速 4-8x
-//! - 使用 `wide` crate 的 f32x8 / f64x4
-//! - 剩余尾部用标量处理
+//! Educational Notes:
+//! - vectorsearchcoreisdistancecompute（Cosine / L2 / Dot）
+//! - SIMD accelerate：process at once 4-8 Dimension，theoretical speedup 4-8x
+//! - use `wide` crate  f32x8 / f64x4
+//! - remaining tail processed with scalar
 
 use serde::{Deserialize, Serialize};
 use wide::f32x8;
 
-/// 距离度量方式
+/// Distance metric
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DistanceMetric {
@@ -31,8 +31,8 @@ pub enum DistanceMetric {
     Dot,
 }
 
-/// Cosine 相似度 = 1 - cosine_distance
-/// Cosine 距离 = 1 - (a·b / (|a| * |b|))
+/// Cosine similarity = 1 - cosine_distance
+/// Cosine distance = 1 - (a·b / (|a| * |b|))
 pub fn cosine_distance(a: &[f32], b: &[f32]) -> f32 {
     assert_eq!(a.len(), b.len());
     let dot = dot_product(a, b);
@@ -44,7 +44,7 @@ pub fn cosine_distance(a: &[f32], b: &[f32]) -> f32 {
     1.0 - dot / (norm_a * norm_b)
 }
 
-/// L2 欧氏距离 = sqrt(Σ(a_i - b_i)²)
+/// L2 Euclidean distance = sqrt(Σ(a_i - b_i)²)
 pub fn l2_distance(a: &[f32], b: &[f32]) -> f32 {
     assert_eq!(a.len(), b.len());
     let chunks = a.chunks_exact(8);
@@ -71,7 +71,7 @@ pub fn l2_distance(a: &[f32], b: &[f32]) -> f32 {
     sum.sqrt()
 }
 
-/// 点积 = Σ(a_i * b_i)
+/// Dot product = Σ(a_i * b_i)
 pub fn dot_product(a: &[f32], b: &[f32]) -> f32 {
     assert_eq!(a.len(), b.len());
 
@@ -104,7 +104,7 @@ pub fn dot_product(a: &[f32], b: &[f32]) -> f32 {
     }
 }
 
-/// aarch64 NEON 加速点积（Apple M-series 专用优化路径）
+/// aarch64 NEON accelerated dot product (Apple M-series specific optimization path)
 #[cfg(target_arch = "aarch64")]
 #[inline]
 unsafe fn dot_product_neon(a: &[f32], b: &[f32]) -> f32 {
@@ -132,7 +132,7 @@ unsafe fn dot_product_neon(a: &[f32], b: &[f32]) -> f32 {
     total
 }
 
-/// L2 归一化向量（原地修改）
+/// L2 normalize vector (in-place modify)
 pub fn l2_normalize(vec: &mut [f32]) {
     let sq: f32 = vec.iter().map(|x| x * x).sum();
     let norm = sq.sqrt();
@@ -143,16 +143,16 @@ pub fn l2_normalize(vec: &mut [f32]) {
     }
 }
 
-/// 按度量方式计算距离
+/// By metric compute distance
 pub fn compute_distance(a: &[f32], b: &[f32], metric: DistanceMetric) -> f32 {
     match metric {
         DistanceMetric::Cosine => cosine_distance(a, b),
         DistanceMetric::L2 => l2_distance(a, b),
-        DistanceMetric::Dot => -dot_product(a, b), // Dot 相似度取负转为距离
+        DistanceMetric::Dot => -dot_product(a, b), // Dot similarity negated to distance
     }
 }
 
-/// 预归一化 Cosine 快速路径：假设 a, b 已 L2-normalize，距离 = 1.0 - dot(a, b)
+/// Pre-normalization Cosine fast path: assume a, b already L2-normalized, distance = 1.0 - dot(a, b)
 pub fn cosine_fast_path(a: &[f32], b: &[f32]) -> f32 {
     1.0 - dot_product(a, b)
 }
@@ -165,7 +165,7 @@ mod tests {
     fn test_cosine_distance() {
         let a = vec![1.0_f32, 0.0, 0.0];
         let b = vec![0.0_f32, 1.0, 0.0];
-        // 正交向量，cosine = 0，距离 = 1
+        // orthogonal vector, cosine = 0, distance = 1
         assert!((cosine_distance(&a, &b) - 1.0).abs() < 0.001);
 
         let c = vec![1.0_f32, 0.0, 0.0];

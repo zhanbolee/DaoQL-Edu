@@ -13,15 +13,15 @@
 //
 #![allow(clippy::result_large_err)]
 
-//! DaoQL-Edu — 多模态数据引擎教学版
+//! DaoQL-Edu — Multimodal Data Engine (Educational Edition)
 //!
-//! 教学说明：
-//! - 本项目是 DaoQL 的简化教学实现
-//! - 保留核心架构：Being/Def/Relation/Version 原语 + 图/列/文档/向量 能力
-//! - 保留性能要素：SIMD、SkipIndex、HNSW、PageCache、双缓冲 WAL
-//! - 移除工业级复杂度：全文检索、多租户、分布式、权限等
+//! Educational Notes:
+//! - This project is a simplified educational implementation of DaoQL
+//! - Preserve core architecture: Being/Def/Relation/Version primitives + graph/column/document/vector capabilities
+//! - Preserve performance features: SIMD, SkipIndex, HNSW, PageCache, dual-buffer WAL
+//! - Remove industrial complexity: full-text search, multi-tenancy, distributed, permissions, etc.
 //!
-//! # 快速开始
+//! # Quick Start
 //! ```rust,ignore
 //! use daoql_edu::{DaoQL, Being};
 //!
@@ -30,19 +30,19 @@
 //! daoql.write(being)?;
 //! ```
 
-// 基础设施
+// Infrastructure
 pub mod api;
 pub mod config;
 pub mod error;
 pub mod id;
 
-// 核心原语
+// Core primitives
 pub mod being;
 pub mod def;
 pub mod relation;
 pub mod version;
 
-// 存储与索引
+// Storage and index
 pub mod column;
 pub mod graph;
 pub mod index;
@@ -51,14 +51,14 @@ pub mod storage;
 pub mod transaction;
 pub mod wal;
 
-// 查询与 DSL
+// QueryAnd DSL
 pub mod dsl;
 pub mod query;
 
-// 向量引擎
+// Vector engine
 pub mod vector;
 
-// 公共重导出
+// Public re-exports
 pub use api::{DslApi, QueryBuilder, WriteBuilder};
 pub use being::{Being, BeingCore, BeingExt};
 pub use config::Config;
@@ -80,39 +80,39 @@ use crate::transaction::committer::{Transaction, TxIdGenerator};
 use crate::vector::hnsw::HnswIndex;
 use crate::wal::writer::WalWriter;
 
-/// DaoQL 引擎入口
+/// DaoQL engine entry
 ///
-/// 这是用户与引擎交互的主要接口。
+/// This is the main interface for user-engine interaction.
 pub struct DaoQL {
-    /// 存储管理器
+    /// Storage manager
     pub storage: Arc<StorageManager>,
-    /// 图引擎（RefCell 支持 &self API 写操作）
+    /// Graph engine (RefCell supports &self API write operations)
     pub graph: RefCell<GraphStore>,
-    /// 事务 ID 生成器
+    /// Transaction ID generator
     pub tx_gen: TxIdGenerator,
     /// DSL API
     pub dsl_api: DslApi,
-    /// 配置
+    /// Configuration
     pub config: Config,
-    /// HNSW 索引（每个字段一个）
+    /// HNSW index (one per field)
     pub vector_indices: std::collections::HashMap<String, HnswIndex>,
-    /// UUID → Offset B+Tree 索引
+    /// UUID → Offset B+Tree index
     pub uuid_index: RefCell<UuidIndex>,
-    /// 列存投影层
+    /// Columnar projected layer
     pub column: RefCell<ProjectedLayer>,
-    /// 类型定义注册表
+    /// Type definition registry
     pub def_registry: RefCell<DefRegistry>,
-    /// WAL 双缓冲写入器
+    /// WAL dual-buffer writer
     pub wal: RefCell<WalWriter>,
 }
 
 impl DaoQL {
-    /// 打开或创建 DaoQL 引擎
+    /// Open or create DaoQL engine
     pub fn open(path: impl AsRef<Path>) -> Result<Self, DaoQLError> {
         Self::open_with_config(path, Config::default())
     }
 
-    /// 使用自定义配置打开
+    /// Open with custom configuration
     pub fn open_with_config(path: impl AsRef<Path>, config: Config) -> Result<Self, DaoQLError> {
         let storage = Arc::new(StorageManager::open(&path, config.clone())?);
         let graph = RefCell::new(GraphStore::new(storage.clone()));
@@ -132,7 +132,7 @@ impl DaoQL {
             &wal_path,
             config.wal.buffer_size,
             config.wal.flush_interval_ms,
-            true, // 默认启用 fsync，保证数据安全
+            true, // Enable fsync by default to ensure data safety
         )?);
 
         Ok(Self {
@@ -149,12 +149,12 @@ impl DaoQL {
         })
     }
 
-    /// 开始查询
+    /// Start query
     pub fn query(&self) -> QueryBuilder<'_> {
         QueryBuilder::new(&self.graph, &self.vector_indices, &self.uuid_index, &self.column)
     }
 
-    /// 开启事务
+    /// Begin transaction
     pub fn begin_tx(&self) -> Result<Transaction<'_>, DaoQLError> {
         let tx_id = self.tx_gen.next();
         Ok(Transaction::new(
@@ -167,7 +167,7 @@ impl DaoQL {
         ))
     }
 
-    /// 写入实体（通过事务统一提交图存储、索引、列存）
+    /// Write entity (unified commit via transaction to graph storage, index, column store)
     pub fn write(&self, being: Being) -> Result<BeingId, DaoQLError> {
         let mut tx = self.begin_tx()?;
         let id = being.core.id;
@@ -176,12 +176,12 @@ impl DaoQL {
         Ok(id)
     }
 
-    /// 批量写入实体（绕过 Transaction，直接批量写入）
+    /// Batch write entities (bypass Transaction, direct batch write)
     ///
-    /// 性能优势：
-    /// - 避免 ops Vec 分配和 Being 克隆
-    /// - 避免 WAL 大 payload 序列化
-    /// - 图存储走 batch alloc + batch write
+    /// Performance advantages:
+    /// - avoid ops Vec allocation and Being clone
+    /// - Avoid WAL large payload serialization
+    /// - Graph storage uses batch alloc + batch write
     pub fn write_batch(&self, beings: &[Being]) -> Result<Vec<BeingId>, DaoQLError> {
         if beings.is_empty() {
             return Ok(Vec::new());
@@ -189,10 +189,10 @@ impl DaoQL {
 
         let tx_id = self.tx_gen.next();
 
-        // 1. 注册 defs（使用 get_or_register 避免重复创建 Def 对象）
+        // 1. Register defs (use get_or_register to avoid duplicate Def creation)
         let mut def_registry = self.def_registry.borrow_mut();
 
-        // 2. 图存储逐条创建
+        // 2. Graph storage creates row by row
         let mut graph = self.graph.borrow_mut();
         graph.set_tx(tx_id);
         let mut uuid_batch = Vec::with_capacity(beings.len());
@@ -204,20 +204,20 @@ impl DaoQL {
         }
         drop(def_registry);
 
-        // 3. 列存投影
+        // 3. Columnar projection
         let mut column = self.column.borrow_mut();
         for being in beings {
             column.project(being)?;
         }
 
-        // 4. UUID 索引批量插入
+        // 4. UUID index batch insert
         let uuid_index = self.uuid_index.borrow();
         uuid_index.batch_insert(&uuid_batch)?;
 
         Ok(beings.iter().map(|b| b.core.id).collect())
     }
 
-    /// 建立关系到图存储
+    /// Establish relation to graph storage
     pub fn relate(
         &self,
         from: BeingId,
@@ -230,12 +230,12 @@ impl DaoQL {
         Ok(())
     }
 
-    /// 执行 DSL 语句
+    /// Execute DSL statement
     pub fn execute_dsl(&self, dsl: &str) -> Result<dsl::executor::DslResult, DaoQLError> {
         self.dsl_api.execute(dsl, &self.graph, &self.def_registry, &self.vector_indices, &self.uuid_index, &self.column)
     }
 
-    /// 注册向量字段
+    /// Register vector field
     pub fn register_vector_field(&mut self, name: impl Into<String>, dim: usize) {
         let name = name.into();
         let hnsw = HnswIndex::new(
@@ -248,7 +248,7 @@ impl DaoQL {
         self.vector_indices.insert(name, hnsw);
     }
 
-    /// 关闭引擎
+    /// Close engine
     pub fn shutdown(&mut self) -> Result<(), DaoQLError> {
         self.wal.borrow_mut().shutdown()?;
         Ok(())
@@ -290,7 +290,7 @@ mod tests {
             dsl::executor::DslResult::Data(items) => {
                 assert!(items.is_empty() || items.len() <= 10);
             }
-            _ => panic!("期望 Data"),
+            _ => panic!("expected Data"),
         }
     }
 
@@ -384,9 +384,9 @@ mod tests {
         let result = daoql.execute_dsl(r#"mutation { create Person ( input: { name: "Alice" } ) }"#).unwrap();
         match result {
             dsl::executor::DslResult::Message(msg) => {
-                assert!(msg.contains("创建"));
+                assert!(msg.contains("Create"));
             }
-            _ => panic!("期望 Message"),
+            _ => panic!("Expected Message"),
         }
     }
 
@@ -459,7 +459,7 @@ mod tests {
         b3.core.weight = 30.0;
         daoql.write(b3).unwrap();
 
-        // 全表聚合 = 60
+        // Full table aggregate = 60
         let result = daoql.query()
             .scan("Person")
             .aggregate("weight", crate::column::AggregateOp::Sum)
@@ -467,7 +467,7 @@ mod tests {
             .unwrap();
         assert_eq!(result.aggregate_value, Some(60.0));
 
-        // 过滤后聚合（仅 Alice + Bob）= 30
+        // Filter then aggregate (Alice + Bob only) = 30
         let result = daoql.query()
             .scan("Person")
             .filter("name", "!=", serde_json::json!("Carol"))
@@ -478,20 +478,20 @@ mod tests {
     }
 
     // =========================================================================
-    // 场景测试：真实业务场景（DSL 驱动）
+    // Scenario test: real business scenarios (DSL driven)
     // =========================================================================
 
-    /// 场景 1：电商库存管理 —— 商品创建、筛选、统计
+    /// Scenario 1: E-commerce inventory management — product creation, filtering, statistics
     #[test]
     fn test_dsl_ecommerce_inventory() {
         let dir = std::env::temp_dir().join("daoql-edu-test-ecommerce");
         let _ = std::fs::remove_dir_all(&dir);
         let daoql = DaoQL::open(&dir).unwrap();
 
-        // 用 Rust API 创建商品（weight = 价格）
+        // Use Rust API to create product (weight = price)
         let mut phone = Being::new("iPhone", "Product");
         phone.core.weight = 999.0;
-        phone.core.status = 1; // 上架
+        phone.core.status = 1; // On shelf
         daoql.write(phone).unwrap();
 
         let mut earphone = Being::new("AirPods", "Product");
@@ -501,7 +501,7 @@ mod tests {
 
         let mut tablet = Being::new("iPad", "Product");
         tablet.core.weight = 2999.0;
-        tablet.core.status = 0; // 下架
+        tablet.core.status = 0; // Off shelf
         daoql.write(tablet).unwrap();
 
         let mut watch = Being::new("Watch", "Product");
@@ -509,50 +509,50 @@ mod tests {
         watch.core.status = 1;
         daoql.write(watch).unwrap();
 
-        // DSL：筛选高价商品（weight > 500）
+        // DSL: filter expensive products (weight > 500)
         let result = daoql.execute_dsl(
             r#"query { Product(filter: {weight > 500}) { id, name, weight, status } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert_eq!(items.len(), 2, "高价商品应只有 iPhone 和 iPad");
+            assert_eq!(items.len(), 2, "expensive products should only be iPhone and iPad");
             let names: Vec<&str> = items.iter()
                 .map(|v| v["name"].as_str().unwrap())
                 .collect();
             assert!(names.contains(&"iPhone"));
             assert!(names.contains(&"iPad"));
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
 
-        // DSL：筛选上架商品（status = 1）
+        // DSL: filter active products (status = 1)
         let result = daoql.execute_dsl(
             r#"query { Product(filter: {status: 1}) { id, name } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert_eq!(items.len(), 3, "上架商品应有 3 个");
+            assert_eq!(items.len(), 3, "active products should be 3");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
 
-        // DSL：限制返回数量
+        // DSL: limit return count
         let result = daoql.execute_dsl(
             r#"query { Product(limit: 2) { id, name } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
             assert_eq!(items.len(), 2);
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
     }
 
-    /// 场景 2：社交网络 —— 用户创建、关系建立、BFS 遍历
+    /// Scenario 2: Social network — user creation, relation establishment, BFS traversal
     #[test]
     fn test_dsl_social_network() {
         let dir = std::env::temp_dir().join("daoql-edu-test-social");
         let _ = std::fs::remove_dir_all(&dir);
         let daoql = DaoQL::open(&dir).unwrap();
 
-        // 创建用户
+        // Create users
         let alice = Being::new("Alice", "User");
         let id_alice = daoql.write(alice).unwrap();
         let bob = Being::new("Bob", "User");
@@ -562,7 +562,7 @@ mod tests {
         let dave = Being::new("Dave", "User");
         let id_dave = daoql.write(dave).unwrap();
 
-        // 建立关注关系：Alice->Bob, Alice->Carol, Bob->Dave
+        // establish follow relations: Alice->Bob, Alice->Carol, Bob->Dave
         let wb = crate::api::write_builder::WriteBuilder::new(
             &daoql.graph, &daoql.def_registry, &daoql.uuid_index
         );
@@ -570,75 +570,75 @@ mod tests {
         wb.create_relation(crate::relation::Relation::new(id_alice, id_carol, 1, true)).unwrap();
         wb.create_relation(crate::relation::Relation::new(id_bob, id_dave, 1, true)).unwrap();
 
-        // DSL：查询所有用户
+        // DSL: query all users
         let result = daoql.execute_dsl(
             r#"query { User { id, name } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
             assert_eq!(items.len(), 4);
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
 
-        // DSL：BFS 遍历 Alice 的社交网络
+        // DSL: BFS traverse Alice's social network
         let result = daoql.execute_dsl(
             r#"analyze { bfs on Alice(limit: 10) { } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            // BFS 返回 offset + depth，应至少包含 Bob(depth=1) 和 Carol(depth=1)
-            assert!(items.len() >= 2, "BFS 应至少遍历到 2 个直接关注对象");
+            // BFS returns offset + depth, should include at least Bob(depth=1) and Carol(depth=1)
+            assert!(items.len() >= 2, "BFS should traverse at least 2 direct follows");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
     }
 
-    /// 场景 3：内容推荐 —— 向量相似搜索
+    /// Scenario 3: Content recommendation — vector similarity search
     #[test]
     fn test_dsl_content_recommendation() {
         let dir = std::env::temp_dir().join("daoql-edu-test-recommend");
         let _ = std::fs::remove_dir_all(&dir);
         let mut daoql = DaoQL::open(&dir).unwrap();
 
-        // 注册向量字段
+        // Register vector field
         daoql.register_vector_field("embedding", 8);
 
-        // 创建文章（带向量嵌入）
-        let article1 = Being::new("Rust入门", "Article");
+        // Create articles (with vector embeddings)
+        let article1 = Being::new("Rust Intro", "Article");
         let id1 = daoql.write(article1).unwrap();
-        let article2 = Being::new("Rust高级", "Article");
+        let article2 = Being::new("Rust Advanced", "Article");
         let id2 = daoql.write(article2).unwrap();
-        let article3 = Being::new("Python入门", "Article");
+        let article3 = Being::new("Python Intro", "Article");
         let id3 = daoql.write(article3).unwrap();
 
-        // 插入向量（Rust 文章相似，Python 文章不同）
+        // Insert vector (Rust articles similar, Python articles different)
         if let Some(index) = daoql.vector_indices.get_mut("embedding") {
             index.insert(id1, vec![0.9, 0.8, 0.7, 0.6, 0.1, 0.1, 0.1, 0.1]).unwrap();
             index.insert(id2, vec![0.85, 0.75, 0.65, 0.55, 0.15, 0.15, 0.15, 0.15]).unwrap();
             index.insert(id3, vec![0.1, 0.1, 0.1, 0.1, 0.9, 0.8, 0.7, 0.6]).unwrap();
         }
 
-        // DSL：向量相似搜索，找与 Rust入门 相似的文章
+        // DSL: vector similarity search, find articles similar to Rust Intro
         let result = daoql.execute_dsl(
             r#"similar { Article(query: [0.9, 0.8, 0.7, 0.6, 0.1, 0.1, 0.1, 0.1], k: 2) { id, name, distance } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert_eq!(items.len(), 2, "应返回 2 篇最相似文章");
-            // 最相似的应该是 Rust入门 自己，其次是 Rust高级
+            assert_eq!(items.len(), 2, "should return 2 most similar articles");
+            // Most similar should be Rust Intro itself, followed by Rust Advanced
             let first_name = items[0]["name"].as_str().unwrap();
-            assert!(first_name.contains("Rust"), "最相似结果应包含 Rust 文章");
+            assert!(first_name.contains("Rust"), "most similar result should contain Rust article");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
     }
 
-    /// 场景 4：复合过滤 —— 范围查询、空结果、多条件
+    /// Scenario 4: Composite filter — range query, empty results, multiple conditions
     #[test]
     fn test_dsl_complex_filters() {
         let dir = std::env::temp_dir().join("daoql-edu-test-filters");
         let _ = std::fs::remove_dir_all(&dir);
         let daoql = DaoQL::open(&dir).unwrap();
 
-        // 创建员工（weight = 薪资，priority = 级别）
+        // Create employees (weight = salary, priority = level)
         let mut e1 = Being::new("Alice", "Employee");
         e1.core.weight = 8000.0;
         e1.core.priority = 5;
@@ -659,17 +659,17 @@ mod tests {
         e4.core.priority = 3;
         daoql.write(e4).unwrap();
 
-        // DSL：薪资 > 10000 的高薪员工
+        // DSL: high-salary employees with salary > 10000
         let result = daoql.execute_dsl(
             r#"query { Employee(filter: {weight > 10000}) { id, name, weight } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert_eq!(items.len(), 2, "高薪员工应有 Bob 和 Carol");
+            assert_eq!(items.len(), 2, "high-salary employees should be Bob and Carol");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
 
-        // DSL：薪资 < 6000 的初级员工
+        // DSL: junior employees with salary < 6000
         let result = daoql.execute_dsl(
             r#"query { Employee(filter: {weight < 6000}) { id, name, weight } }"#
         ).unwrap();
@@ -677,49 +677,49 @@ mod tests {
             assert_eq!(items.len(), 1);
             assert_eq!(items[0]["name"], "Dave");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
 
-        // DSL：查询不存在的条件（空结果）
+        // DSL: query non-existent condition (empty result)
         let result = daoql.execute_dsl(
             r#"query { Employee(filter: {weight > 99999}) { id, name } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert!(items.is_empty(), "不存在薪资超过 99999 的员工");
+            assert!(items.is_empty(), "no employee with salary > 99999");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
 
-        // DSL：级别 >= 5 的员工
+        // DSL: employees with level >= 5
         let result = daoql.execute_dsl(
             r#"query { Employee(filter: {priority >= 5}) { id, name, priority } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert_eq!(items.len(), 3, "级别 >=5 应有 Alice, Bob, Carol");
+            assert_eq!(items.len(), 3, "level >=5 should include Alice, Bob, Carol");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
     }
 
     // =========================================================================
-    // 混合查询场景：跨引擎查询（图 + 列存 + 向量 + 索引）
+    // Mixed query scenario: cross-engine query (graph + columnar + vector + index)
     // =========================================================================
 
-    /// 混合场景 1：图扫描 + filter + 列存聚合（论文核心混合查询）
+    /// Mixed scenario 1: graph scan + filter + columnar aggregate (core mixed query from paper)
     #[test]
     fn test_mixed_scan_filter_aggregate() {
         let dir = std::env::temp_dir().join("daoql-edu-test-mixed-sfa");
         let _ = std::fs::remove_dir_all(&dir);
         let daoql = DaoQL::open(&dir).unwrap();
 
-        // 创建订单（weight = 金额）
+        // Create orders (weight = amount)
         for i in 0..20 {
-            let mut order = Being::new(&format!("Order-{i}"), "Order");
+            let mut order = Being::new(format!("Order-{i}"), "Order");
             order.core.weight = (i * 10) as f64; // 0, 10, 20, ..., 190
             daoql.write(order).unwrap();
         }
 
-        // 混合查询：图扫描所有 Order → filter（金额 > 50）→ 列存 SUM 聚合
+        // Mixed query: graph scan all Orders → filter (amount > 50) → columnar SUM aggregate
         let result = daoql
             .query()
             .scan("Order")
@@ -728,77 +728,77 @@ mod tests {
             .execute()
             .unwrap();
 
-        // 金额 > 50 的订单：60+70+...+190 = 1750（共 14 个）
+        // Orders with amount > 50: 60+70+...+190 = 1750 (14 total)
         assert_eq!(result.aggregate_value, Some(1750.0));
     }
 
-    /// 混合场景 2：向量搜索 → 图遍历 → 列读取
+    /// Mixed scenario 2: vector search → graph traversal → column read
     #[test]
     fn test_mixed_vector_search_then_graph_traverse() {
         let dir = std::env::temp_dir().join("daoql-edu-test-mixed-vsg");
         let _ = std::fs::remove_dir_all(&dir);
         let mut daoql = DaoQL::open(&dir).unwrap();
 
-        // 注册向量字段
+        // Register vector field
         daoql.register_vector_field("embedding", 8);
 
-        // 创建文章和作者
-        let article1 = Being::new("Rust入门", "Article");
+        // Create articles and authors
+        let article1 = Being::new("Rust Intro", "Article");
         let id1 = daoql.write(article1).unwrap();
-        let author1 = Being::new("张三", "Author");
+        let author1 = Being::new("Zhang San", "Author");
         let author_id1 = daoql.write(author1).unwrap();
 
-        let article2 = Being::new("Rust高级", "Article");
+        let article2 = Being::new("Rust Advanced", "Article");
         let id2 = daoql.write(article2).unwrap();
-        let author2 = Being::new("李四", "Author");
+        let author2 = Being::new("Li Si", "Author");
         let author_id2 = daoql.write(author2).unwrap();
 
-        let article3 = Being::new("Python入门", "Article");
+        let article3 = Being::new("Python Intro", "Article");
         let id3 = daoql.write(article3).unwrap();
 
-        // 建立作者-文章关系
+        // Establish author-article relation
         let wb = crate::api::write_builder::WriteBuilder::new(
             &daoql.graph, &daoql.def_registry, &daoql.uuid_index
         );
         wb.create_relation(crate::relation::Relation::new(author_id1, id1, 1, true)).unwrap();
         wb.create_relation(crate::relation::Relation::new(author_id2, id2, 1, true)).unwrap();
 
-        // 插入向量（Rust 文章相似）
+        // Insert vector (Rust articles similar)
         if let Some(index) = daoql.vector_indices.get_mut("embedding") {
             index.insert(id1, vec![0.9, 0.8, 0.7, 0.6, 0.1, 0.1, 0.1, 0.1]).unwrap();
             index.insert(id2, vec![0.85, 0.75, 0.65, 0.55, 0.15, 0.15, 0.15, 0.15]).unwrap();
             index.insert(id3, vec![0.1, 0.1, 0.1, 0.1, 0.9, 0.8, 0.7, 0.6]).unwrap();
         }
 
-        // Step 1: 向量搜索找到与 "Rust入门" 相似的文章
+        // Step 1: vector search find articles similar to "Rust Intro"
         let similar_results = daoql.query().similar_to(vec![0.9, 0.8, 0.7, 0.6, 0.1, 0.1, 0.1, 0.1], 2).execute().unwrap();
-        assert!(!similar_results.items.is_empty(), "应找到相似文章");
+        assert!(!similar_results.items.is_empty(), "Should find similar articles");
 
-        // Step 2: 对每篇相似文章，遍历其作者关系，读取作者信息
+        // Step 2: for each similar article, traverse author relations, read author info
         for article in &similar_results.items {
             let graph = daoql.graph.borrow();
-            // 通过 UUID 索引找到文章 offset
+            // Find article offset via UUID index
             if let Ok(Some(offset)) = daoql.uuid_index.borrow().get(article.core.id) {
-                // 遍历出边（作者→文章的关系反向查找较复杂，简化：直接读取作者）
+                // Traverse outgoing edges (author→article relation reverse lookup is complex, simplified: read author directly)
                 let _ = graph.read_node(offset);
             }
         }
 
-        // 验证：至少找到一篇 Rust 相关文章
+        // Verify: at least one Rust-related article found
         let names: Vec<&str> = similar_results.items.iter()
             .map(|b| b.core.name.as_str())
             .collect();
         assert!(names.iter().any(|n| n.contains("Rust")));
     }
 
-    /// 混合场景 3：BFS 图遍历 → 列存读取
+    /// Mixed scenario 3: BFS graph traversal → columnar read
     #[test]
     fn test_mixed_bfs_then_column_read() {
         let dir = std::env::temp_dir().join("daoql-edu-test-mixed-bfs");
         let _ = std::fs::remove_dir_all(&dir);
         let daoql = DaoQL::open(&dir).unwrap();
 
-        // 创建社交网络（priority = 影响力分数）
+        // Create social network (priority = influence score)
         let alice = Being::new("Alice", "User");
         let id_alice = daoql.write(alice).unwrap();
         let mut bob = Being::new("Bob", "User");
@@ -811,7 +811,7 @@ mod tests {
         dave.core.priority = 60;
         let id_dave = daoql.write(dave).unwrap();
 
-        // 建立关注关系：Alice->Bob, Alice->Carol, Bob->Dave
+        // establish follow relations: Alice->Bob, Alice->Carol, Bob->Dave
         let wb = crate::api::write_builder::WriteBuilder::new(
             &daoql.graph, &daoql.def_registry, &daoql.uuid_index
         );
@@ -819,7 +819,7 @@ mod tests {
         wb.create_relation(crate::relation::Relation::new(id_alice, id_carol, 1, true)).unwrap();
         wb.create_relation(crate::relation::Relation::new(id_bob, id_dave, 1, true)).unwrap();
 
-        // Step 1: BFS 遍历 Alice 的社交网络
+        // Step 1: BFS traverse Alice's social network
         let uuid_idx = daoql.uuid_index.borrow();
         let alice_offset = uuid_idx.get(id_alice).unwrap().unwrap();
         drop(uuid_idx);
@@ -828,9 +828,9 @@ mod tests {
         let bfs_results = crate::graph::traversal::bfs(&mut graph, alice_offset, 3, None).unwrap();
         drop(graph);
 
-        assert!(!bfs_results.is_empty(), "BFS 应至少遍历到 Alice 自己");
+        assert!(!bfs_results.is_empty(), "BFS should at least traverse to Alice herself");
 
-        // Step 2: 对 BFS 遍历到的每个节点，从列存读取 priority（影响力）
+        // Step 2: for each node traversed by BFS, read priority (influence) from column store
         let column = daoql.column.borrow();
         let mut total_influence = 0u32;
         let mut count = 0;
@@ -848,38 +848,38 @@ mod tests {
         }
 
         // Alice(0) + Bob(80) + Carol(95) + Dave(60) = 235
-        assert_eq!(total_influence, 235, "BFS 遍历到的用户影响力总和应为 235");
-        assert_eq!(count, 4, "应遍历到 4 个用户");
+        assert_eq!(total_influence, 235, "BFS traversed users total influence should be 235");
+        assert_eq!(count, 4, "should traverse 4 users");
     }
 
-    /// 混合场景 4：点查 → 关系遍历 → 列存聚合
+    /// Mixed scenario 4: point query → relation traversal → columnar aggregate
     #[test]
     fn test_mixed_point_query_relation_aggregate() {
         let dir = std::env::temp_dir().join("daoql-edu-test-mixed-pqra");
         let _ = std::fs::remove_dir_all(&dir);
         let daoql = DaoQL::open(&dir).unwrap();
 
-        // 创建客户和订单
+        // Create customers and orders
         let customer = Being::new("Alice", "Customer");
         let cust_id = daoql.write(customer).unwrap();
 
         for i in 1..=5 {
-            let mut order = Being::new(&format!("Order-{i}"), "Order");
+            let mut order = Being::new(format!("Order-{i}"), "Order");
             order.core.weight = (i * 100) as f64; // 100, 200, 300, 400, 500
             let order_id = daoql.write(order).unwrap();
 
-            // 建立客户-订单关系
+            // Establish customer-order relation
             let wb = crate::api::write_builder::WriteBuilder::new(
                 &daoql.graph, &daoql.def_registry, &daoql.uuid_index
             );
             wb.create_relation(crate::relation::Relation::new(cust_id, order_id, 1, true)).unwrap();
         }
 
-        // Step 1: 点查找到客户 Alice
+        // Step 1: point query find customer Alice
         let customer_result = daoql.query().being(cust_id).fetch_one().unwrap();
         assert!(customer_result.is_some());
 
-        // Step 2: 遍历 Alice 的所有出边（订单关系）
+        // Step 2: traverse all outgoing edges of Alice (order relations)
         let uuid_idx = daoql.uuid_index.borrow();
         let cust_offset = uuid_idx.get(cust_id).unwrap().unwrap();
         drop(uuid_idx);
@@ -892,9 +892,9 @@ mod tests {
         }
         drop(graph);
 
-        assert_eq!(order_ids.len(), 5, "Alice 应有 5 个订单");
+        assert_eq!(order_ids.len(), 5, "Alice should have 5 orders");
 
-        // Step 3: 从列存读取每个订单的金额并求和
+        // Step 3: read each order amount from column store and sum
         let column = daoql.column.borrow();
         let mut total = 0.0;
         for order_id in &order_ids {
@@ -904,10 +904,10 @@ mod tests {
         }
 
         // 100 + 200 + 300 + 400 + 500 = 1500
-        assert_eq!(total, 1500.0, "Alice 的订单总金额应为 1500");
+        assert_eq!(total, 1500.0, "Alice total order amount should be 1500");
     }
 
-    /// 场景5：电商推荐 —— 向量搜索 → 图关系 → 列存属性（跨引擎嵌套）
+    /// Scenario 5: E-commerce recommendation — vector search → graph relation → columnar attributes (cross-engine nested)
     #[test]
     fn test_dsl_ecommerce_recommendation() {
         let dir = std::env::temp_dir().join("daoql-edu-test-rec");
@@ -915,7 +915,7 @@ mod tests {
         let mut daoql = DaoQL::open(&dir).unwrap();
         daoql.register_vector_field("embedding", 8);
 
-        // 创建产品（weight = 价格）
+        // Create products (weight = price)
         let mut phone = Being::new("iPhone", "Product");
         phone.core.weight = 999.0;
         let id_phone = daoql.write(phone).unwrap();
@@ -928,46 +928,46 @@ mod tests {
         tablet.core.weight = 2999.0;
         let id_tablet = daoql.write(tablet).unwrap();
 
-        // 建立配件关系：iPhone -> AirPods, iPhone -> iPad
+        // Establish accessory relation: iPhone -> AirPods, iPhone -> iPad
         let wb = crate::api::write_builder::WriteBuilder::new(
             &daoql.graph, &daoql.def_registry, &daoql.uuid_index
         );
         wb.create_relation(crate::relation::Relation::new(id_phone, id_earphone, 1, true)).unwrap();
         wb.create_relation(crate::relation::Relation::new(id_phone, id_tablet, 1, true)).unwrap();
 
-        // 插入向量（iPhone 和 AirPods 的 embedding 相似）
+        // Insert vector (iPhone and AirPods embeddings similar)
         if let Some(index) = daoql.vector_indices.get_mut("embedding") {
             index.insert(id_phone, vec![0.9, 0.8, 0.7, 0.6, 0.1, 0.1, 0.1, 0.1]).unwrap();
             index.insert(id_earphone, vec![0.85, 0.75, 0.65, 0.55, 0.15, 0.15, 0.15, 0.15]).unwrap();
             index.insert(id_tablet, vec![0.1, 0.1, 0.1, 0.1, 0.9, 0.8, 0.7, 0.6]).unwrap();
         }
 
-        // DSL：向量搜索与 iPhone 相似的产品，返回结果应包含价格(weight)和关联产品
+        // DSL: vector search products similar to iPhone, result should contain price(weight) and related products
         let result = daoql.execute_dsl(
             r#"similar { Product(query: [0.9, 0.8, 0.7, 0.6, 0.1, 0.1, 0.1, 0.1], k: 3) { } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert!(!items.is_empty(), "应返回相似产品");
-            // 第一个结果应该是 iPhone 自己，应包含 weight 和 relations
+            assert!(!items.is_empty(), "should return similar products");
+            // First result should be iPhone itself, should contain weight and relations
             let first = &items[0];
-            assert!(first.get("weight").is_some(), "结果应包含列存价格 weight");
-            assert!(first.get("relations").is_some(), "结果应包含图关系 relations");
-            assert!(first.get("relation_count").is_some(), "结果应包含关系数量");
+            assert!(first.get("weight").is_some(), "result should contain columnar price weight");
+            assert!(first.get("relations").is_some(), "result should contain graph relations");
+            assert!(first.get("relation_count").is_some(), "result should contain relation count");
             let relations = first["relations"].as_array().unwrap();
-            assert_eq!(relations.len(), 2, "iPhone 应有 2 个关联产品");
+            assert_eq!(relations.len(), 2, "iPhone should have 2 related products");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
     }
 
-    /// 场景6：社交网络影响力 —— BFS 遍历 → 列存优先级（跨引擎嵌套）
+    /// Scenario 6: Social network influence — BFS traversal → columnar priority (cross-engine nested)
     #[test]
     fn test_dsl_social_influence() {
         let dir = std::env::temp_dir().join("daoql-edu-test-influence");
         let _ = std::fs::remove_dir_all(&dir);
         let daoql = DaoQL::open(&dir).unwrap();
 
-        // 创建用户（priority = 影响力分数）
+        // Create users (priority = influence score)
         let alice = Being::new("Alice", "User");
         let id_alice = daoql.write(alice).unwrap();
 
@@ -983,7 +983,7 @@ mod tests {
         dave.core.priority = 60;
         let id_dave = daoql.write(dave).unwrap();
 
-        // 建立关注关系：Alice->Bob, Alice->Carol, Bob->Dave
+        // establish follow relations: Alice->Bob, Alice->Carol, Bob->Dave
         let wb = crate::api::write_builder::WriteBuilder::new(
             &daoql.graph, &daoql.def_registry, &daoql.uuid_index
         );
@@ -991,31 +991,31 @@ mod tests {
         wb.create_relation(crate::relation::Relation::new(id_alice, id_carol, 1, true)).unwrap();
         wb.create_relation(crate::relation::Relation::new(id_bob, id_dave, 1, true)).unwrap();
 
-        // DSL：BFS 遍历 Alice 的社交网络，返回结果应包含 priority
+        // DSL: BFS traverse Alice's social network, returned results should contain priority
         let result = daoql.execute_dsl(
             r#"analyze { bfs on Alice(limit: 10) { } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert!(!items.is_empty(), "BFS 应返回遍历结果");
-            // 查找 Bob 的结果，应包含 priority
+            assert!(!items.is_empty(), "BFS should return traversal results");
+            // Find Bob's result, should contain priority
             let bob_item = items.iter().find(|v| v["name"] == "Bob");
-            assert!(bob_item.is_some(), "应找到 Bob");
+            assert!(bob_item.is_some(), "should find Bob");
             let bob_item = bob_item.unwrap();
-            assert!(bob_item.get("priority").is_some(), "结果应包含列存 priority");
-            assert_eq!(bob_item["priority"].as_f64().unwrap(), 80.0, "Bob 的影响力分数应为 80");
+            assert!(bob_item.get("priority").is_some(), "result should contain columnar priority");
+            assert_eq!(bob_item["priority"].as_f64().unwrap(), 80.0, "Bob influence score should be 80");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
     }
 
-    /// 场景7：销售报表 —— DSL 聚合查询（列存聚合 fast path）
+    /// Scenario 7: Sales report — DSL aggregate query (columnar aggregate fast path)
     #[test]
     fn test_dsl_sales_report() {
         let dir = std::env::temp_dir().join("daoql-edu-test-sales");
         let _ = std::fs::remove_dir_all(&dir);
         let daoql = DaoQL::open(&dir).unwrap();
 
-        // 创建订单（weight = 金额）
+        // Create orders (weight = amount)
         let mut o1 = Being::new("Order-A", "Order");
         o1.core.weight = 100.0;
         daoql.write(o1).unwrap();
@@ -1028,34 +1028,34 @@ mod tests {
         o3.core.weight = 300.0;
         daoql.write(o3).unwrap();
 
-        // DSL：查询订单总金额
+        // DSL: query total order amount
         let result = daoql.execute_dsl(
             r#"query { Order(aggregate: {weight: sum}) { } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert_eq!(items.len(), 1, "聚合查询应返回单行结果");
+            assert_eq!(items.len(), 1, "Aggregate query should return single-row result");
             let agg = &items[0];
-            assert_eq!(agg["aggregate"], 600.0, "订单总金额应为 600");
-            assert_eq!(agg["count"], 3, "订单数量应为 3");
+            assert_eq!(agg["aggregate"], 600.0, "total order amount should be 600");
+            assert_eq!(agg["count"], 3, "order count should be 3");
             assert_eq!(agg["op"], "sum");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
 
-        // DSL：带过滤的聚合（只统计金额 > 150 的订单）
+        // DSL: filtered aggregation (only count orders with amount > 150)
         let result = daoql.execute_dsl(
             r#"query { Order(filter: {weight > 150}, aggregate: {weight: sum}) { } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
             assert_eq!(items.len(), 1);
-            assert_eq!(items[0]["aggregate"], 500.0, "金额 >150 的订单总和应为 500");
-            assert_eq!(items[0]["count"], 2, "应统计 2 个订单");
+            assert_eq!(items[0]["aggregate"], 500.0, "order sum for amount >150 should be 500");
+            assert_eq!(items[0]["count"], 2, "should count 2 orders");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
     }
 
-    /// 场景8：风控检测 —— 向量搜索异常交易 → 图关系 → 列存金额（跨引擎嵌套）
+    /// Scenario 8: Risk detection — vector search anomalous transactions → graph relation → columnar amount (cross-engine nested)
     #[test]
     fn test_dsl_risk_detection() {
         let dir = std::env::temp_dir().join("daoql-edu-test-risk");
@@ -1063,7 +1063,7 @@ mod tests {
         let mut daoql = DaoQL::open(&dir).unwrap();
         daoql.register_vector_field("embedding", 8);
 
-        // 创建交易（weight = 交易金额）
+        // Create transactions (weight = transaction amount)
         let mut t1 = Being::new("Tx-Alice-1", "Transaction");
         t1.core.weight = 5000.0;
         let id1 = daoql.write(t1).unwrap();
@@ -1076,37 +1076,37 @@ mod tests {
         t3.core.weight = 200.0;
         let id3 = daoql.write(t3).unwrap();
 
-        // 创建账户
+        // Create accounts
         let alice = Being::new("Alice-Account", "Account");
         let id_alice = daoql.write(alice).unwrap();
 
-        // 建立交易-账户关系
+        // Establish transaction-account relation
         let wb = crate::api::write_builder::WriteBuilder::new(
             &daoql.graph, &daoql.def_registry, &daoql.uuid_index
         );
         wb.create_relation(crate::relation::Relation::new(id1, id_alice, 1, true)).unwrap();
         wb.create_relation(crate::relation::Relation::new(id2, id_alice, 1, true)).unwrap();
 
-        // 插入向量（Alice 的交易相似）
+        // Insert vector (Alice's transactions similar)
         if let Some(index) = daoql.vector_indices.get_mut("embedding") {
             index.insert(id1, vec![0.9, 0.8, 0.7, 0.6, 0.1, 0.1, 0.1, 0.1]).unwrap();
             index.insert(id2, vec![0.85, 0.75, 0.65, 0.55, 0.15, 0.15, 0.15, 0.15]).unwrap();
             index.insert(id3, vec![0.1, 0.1, 0.1, 0.1, 0.9, 0.8, 0.7, 0.6]).unwrap();
         }
 
-        // DSL：向量搜索相似交易，返回结果应包含金额和关联账户
+        // DSL: vector search similar transactions, result should contain amount and related accounts
         let result = daoql.execute_dsl(
             r#"similar { Transaction(query: [0.9, 0.8, 0.7, 0.6, 0.1, 0.1, 0.1, 0.1], k: 3) { } }"#
         ).unwrap();
         if let dsl::executor::DslResult::Data(items) = result {
-            assert!(!items.is_empty(), "应返回相似交易");
+            assert!(!items.is_empty(), "should return similar transactions");
             let first = &items[0];
-            assert!(first.get("weight").is_some(), "结果应包含列存金额 weight");
-            assert!(first.get("relations").is_some(), "结果应包含图关系 relations");
+            assert!(first.get("weight").is_some(), "result should contain columnar amount weight");
+            assert!(first.get("relations").is_some(), "result should contain graph relations");
             let weight = first["weight"].as_f64().unwrap();
-            assert!(weight > 0.0, "交易金额应大于 0");
+            assert!(weight > 0.0, "transaction amount should be > 0");
         } else {
-            panic!("期望 Data");
+            panic!("expected Data");
         }
     }
 }

@@ -11,13 +11,13 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! WAL（Write-Ahead Log）— 预写日志
+//! WAL (Write-Ahead Log)
 //!
-//! 教学说明：
-//! - WAL 是保证事务持久性的核心机制
-//! - 流程：事务先写 WAL → 再修改内存数据 → 最后返回成功
-//! - 崩溃恢复：重启时回放 WAL，重做已提交事务
-//! - 双缓冲组提交：Buffer A（前台追加）↔ Buffer B（后台 fsync）
+//! Educational Notes:
+//! - WAL is the core mechanism for guaranteeing transaction durability
+//! - flow: transaction writes WAL first → then modifies memory data → finally returns success
+//! - Crash recovery: replay WAL at restart, redo already committed transactions
+//! - dual-buffer group commit: Buffer A (foreground append) ↔ Buffer B (background fsync)
 
 pub mod record;
 pub mod recovery;

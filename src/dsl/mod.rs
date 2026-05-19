@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! DSL（声明式查询语言）
+//! DSL (Declarative Query Language)
 //!
-//! 教学说明：
-//! - GraphQL-like 语法
-//! - 支持：query / mutation / analyze / define
-//! - 递归下降解析器
+//! Educational Notes:
+//! - GraphQL-like syntax
+//! - support：query / mutation / analyze / define
+//! - recursive descentParse
 
 pub mod ast;
 pub mod executor;

@@ -11,62 +11,62 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! Version（版本管理）— 隐式 MVCC 机制
+//! Version (Version Management) — implicit MVCC mechanism
 //!
-//! 教学说明：
-//! - DaoQL-Edu 采用隐式 MVCC：更新 = 追加新版本，旧版本保留
-//! - 每个 NodeRecord 内联存储 tx_begin/tx_end + prev/next_version_offset
-//! - 无需额外版本表，版本链指针直接内联在图节点中
-//! - 查询支持：history: all / last(N) / at(ts) / as_of(ts)
+//! Educational Notes:
+//! - DaoQL-Edu uses implicit MVCC: update = append new version, old version retained
+//! - Each NodeRecord inline-stores tx_begin/tx_end + prev/next_version_offset
+//! - No extra version table needed, version chain pointers inline in graph nodes
+//! - Query support: history: all / last(N) / at(ts) / as_of(ts)
 //!
-//! MVCC 核心规则（Read Committed）：
-//! - 事务只能看到已提交的版本
-//! - 更新不覆盖旧数据，而是创建新版本并设置旧版本的 tx_end
-//! - 事务 ID 单调递增，用于判断版本的时间顺序
+//! MVCC core rules (Read Committed):
+//! - Transactions can only see committed versions
+//! - Updates don't overwrite old data, but create new version and set old version's tx_end
+//! - Transaction IDs monotonically increase, used to determine version temporal order
 
 use crate::being::BeingCore;
 use crate::error::DaoQLError;
 use crate::id::BeingId;
 use crate::transaction::TxId;
 
-/// 版本链节点（内存表示）
+/// Version chain node (in-memory representation)
 ///
-/// 对应 mmap 中的 NodeRecord，提取出版本相关字段。
+/// Corresponds to NodeRecord in mmap, extracting version-related fields.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VersionNode {
-    /// 实体 ID
+    /// Entity ID
     pub being_id: BeingId,
-    /// 版本开始事务号
+    /// Version begin transaction number
     pub tx_begin: TxId,
-    /// 版本结束事务号（u64::MAX = 当前活跃版本）
+    /// Version end transaction number (u64::MAX = current active version)
     pub tx_end: TxId,
-    /// 上一个版本偏移（mmap 中的 NodeOffset）
+    /// Previous version offset (NodeOffset in mmap)
     pub prev_version_offset: u64,
-    /// 下一个版本偏移
+    /// Next version offset
     pub next_version_offset: u64,
-    /// 创建时间
+    /// Creation time
     pub created_at: i64,
-    /// 版本内容（BeingCore）
+    /// Version content (BeingCore)
     pub core: BeingCore,
 }
 
-/// 版本链
+/// Version chain
 ///
-/// 一个 Being 的所有版本按时间顺序组成的链表。
-/// 头节点是最新版本，尾节点是最早版本。
+/// A linked list of all versions of a Being in chronological order.
+/// Head node is the latest version, tail node is the earliest version.
 pub struct VersionChain {
     /// BeingId
     pub being_id: BeingId,
-    /// 最新版本偏移（head）
+    /// Latest version offset (head)
     pub head_offset: u64,
-    /// 最早版本偏移（tail）
+    /// Earliest version offset (tail)
     pub tail_offset: u64,
-    /// 版本数量
+    /// Version count
     pub count: usize,
 }
 
 impl VersionChain {
-    /// 创建空版本链
+    /// Create empty version chain
     pub fn new(being_id: BeingId) -> Self {
         Self {
             being_id,
@@ -76,75 +76,75 @@ impl VersionChain {
         }
     }
 
-    /// 是否为空
+    /// Is empty
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
 }
 
-/// 版本查询模式
+/// Version query mode
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[derive(Default)]
 pub enum HistoryMode {
-    /// 当前版本（默认）
+    /// Current version (default)
     #[default]
     Current,
-    /// 所有历史版本
+    /// All historical versions
     All,
-    /// 最近 N 个版本
+    /// Last N versions
     Last(usize),
-    /// 指定事务号时的版本
+    /// Version at specified transaction number
     At(TxId),
-    /// 指定时间戳时的版本
+    /// Version at specified timestamp
     AsOf(i64),
 }
 
 
-/// MVCC 可见性判断
+/// MVCC visibility check
 ///
-/// 判断一个版本（tx_begin/tx_end）在当前事务下是否可见。
+/// Check whether a version (tx_begin/tx_end) is visible under current transaction.
 ///
-/// 参数：
-/// - version_begin: 版本的创建事务号
-/// - version_end: 版本的结束事务号（u64::MAX = 未结束）
-/// - reader_tx: 读取者的事务号
-/// - active_txs: 当前活跃事务集合
+/// Parameter：
+/// - version_begin: version's create transaction number
+/// - version_end: version's end transaction number (u64::MAX = not ended)
+/// - reader_tx: reader's transaction number
+/// - active_txs: current active transaction set
 ///
-/// 规则：
-/// 1. 自己创建的版本总是可见
-/// 2. 创建者已提交（不在 active_txs 中）
-/// 3. 版本未结束，或结束者已提交
+/// Rule：
+/// 1. Self-created version is always visible
+/// 2. Creator committed (not in active_txs)
+/// 3. Version not ended, or ender committed
 pub fn is_visible(
     version_begin: TxId,
     version_end: TxId,
     reader_tx: TxId,
     active_txs: &[TxId],
 ) -> bool {
-    // 规则 1：自己创建的版本总是可见
+    // Rule 1: Self-created version is always visible
     if version_begin == reader_tx {
         return true;
     }
 
-    // 规则 2：创建者已提交
+    // Rule 2: Creator committed
     let creator_committed = !active_txs.contains(&version_begin);
     if !creator_committed {
         return false;
     }
 
-    // 规则 3：版本未结束，或结束者已提交
+    // Rule 3: Version not ended, or ender committed
     let is_ended = version_end != u64::MAX;
     if !is_ended {
-        return true; // 未结束 = 当前活跃版本
+        return true; // Not ended = current active version
     }
 
     
     !active_txs.contains(&version_end)
 }
 
-/// 版本管理器（内存索引）
+/// Version manager (in-memory index)
 ///
-/// 维护 BeingId → VersionChain 的映射，用于快速定位版本链。
-/// 教学版简化：内存 HashMap，重启后从 mmap 重建。
+/// Maintains BeingId → VersionChain mapping for quick version chain lookup.
+/// edu edition simplification: in-memory HashMap, rebuilt from mmap on restart.
 pub struct VersionManager {
     chains: std::collections::HashMap<BeingId, VersionChain>,
 }
@@ -156,7 +156,7 @@ impl VersionManager {
         }
     }
 
-    /// 注册新版本
+    /// Register new version
     pub fn register_version(
         &mut self,
         being_id: BeingId,
@@ -176,21 +176,21 @@ impl VersionManager {
         Ok(())
     }
 
-    /// 获取版本链
+    /// Get version chain
     pub fn get_chain(&self, being_id: BeingId) -> Option<&VersionChain> {
         self.chains.get(&being_id)
     }
 
-    /// 获取版本数量
+    /// Get version count
     pub fn version_count(&self, being_id: BeingId) -> usize {
         self.chains.get(&being_id).map(|c| c.count).unwrap_or(0)
     }
 
-    /// 重建版本链（启动时从 mmap 扫描）
+    /// Rebuild version chain (scan from mmap at startup)
     ///
-    /// 教学说明：
-    /// - 启动时遍历所有 NodeRecord，按 BeingId 分组构建链表
-    /// - 时间复杂度 O(N)，N = 节点数
+    /// Educational Notes:
+    /// - At startup, iterate all NodeRecords, build linked list grouped by BeingId
+    /// - Time complexity O(N), N = node count
     pub fn rebuild(&mut self, graph: &crate::graph::store::GraphStore) -> Result<(), DaoQLError> {
         self.chains.clear();
         for i in 0..graph.node_count() {
@@ -227,26 +227,26 @@ mod tests {
 
     #[test]
     fn test_mvcc_visibility_basic() {
-        // 版本由 tx=10 创建，未结束
-        // reader tx=20，活跃事务集为空
+        // Version created by tx=10, not ended
+        // reader tx=20, active transaction set is empty
         assert!(is_visible(10, u64::MAX, 20, &[]));
 
-        // 版本由 tx=10 创建，reader 自己就是创建者
+        // Version created by tx=10, reader is the creator
         assert!(is_visible(10, u64::MAX, 10, &[]));
 
-        // 版本由 tx=10 创建，但 tx=10 仍在活跃中（未提交）
+        // Version created by tx=10, but tx=10 is still active (not committed)
         assert!(!is_visible(10, u64::MAX, 20, &[10]));
     }
 
     #[test]
     fn test_mvcc_visibility_ended() {
-        // 版本由 tx=10 创建，tx=15 结束，两者都已提交
+        // Version created by tx=10, ended by tx=15, both committed
         assert!(is_visible(10, 15, 20, &[]));
 
-        // 版本由 tx=10 创建，tx=15 结束，但 tx=15 仍在活跃
+        // Version created by tx=10, ended by tx=15, but tx=15 is still active
         assert!(!is_visible(10, 15, 20, &[15]));
 
-        // 版本已结束，reader 在结束后才启动
+        // Version ended, reader started after end
         assert!(is_visible(10, 15, 20, &[]));
     }
 

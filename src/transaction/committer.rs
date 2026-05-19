@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 事务提交器
+//! Transaction Committer
 //!
-//! 教学说明：
-//! - 两阶段提交：
-//!   1. 准备阶段：排序加锁、验证约束
-//!   2. 提交阶段：写 WAL、执行变更、更新索引、释放锁
+//! Educational Notes:
+//! - Two-phase commit：
+//!   1. preparation phase：Sort and lock、validate constraints
+//!   2. commit phase：write WAL, execute mutation, update index, release locks
 
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -34,7 +34,7 @@ use crate::transaction::{ActiveTxSet, TxId};
 use crate::wal::record::{Op, TransactionPayload};
 use crate::wal::writer::WalWriter;
 
-/// 事务
+/// Transaction
 pub struct Transaction<'a> {
     pub tx_id: TxId,
     pub ops: Vec<Op>,
@@ -69,28 +69,28 @@ impl<'a> Transaction<'a> {
         }
     }
 
-    /// 添加操作
+    /// Addoperation
     pub fn add_op(&mut self, op: Op) {
         self.ops.push(op);
     }
 
-    /// 创建 Being
+    /// Create Being
     pub fn create_being(&mut self, being: Being) {
         self.add_op(Op::CreateBeing { being });
     }
 
-    /// 创建关系
+    /// Create relation
     pub fn create_relation(&mut self, relation: Relation) {
         self.add_op(Op::CreateRelation { relation });
     }
 
-    /// 提交事务
+    /// Commit transaction
     pub fn commit(&mut self) -> Result<(), DaoQLError> {
         if self.ops.is_empty() {
             return Ok(());
         }
 
-        // 1. 收集涉及的 BeingId
+        // 1. Collect involved BeingIds
         let mut ids: Vec<BeingId> = self
             .ops
             .iter()
@@ -103,13 +103,13 @@ impl<'a> Transaction<'a> {
         ids.sort();
         ids.dedup();
 
-        // 2. 批量加锁
+        // 2. Batch lock
         let _guards = self.lock_manager.batch_write_lock(ids)?;
 
-        // 3. 注册活跃事务
+        // 3. Register active transactions
         self.active_txs.add(self.tx_id);
 
-        // 4. 写 WAL
+        // 4. Write WAL
         let payload = TransactionPayload {
             tx_id: self.tx_id,
             ops: std::mem::take(&mut self.ops),
@@ -120,10 +120,10 @@ impl<'a> Transaction<'a> {
             payload.to_bytes()?,
         );
         wal.append(&record)?;
-        // 不立即 flush —— 由后台线程或 buffer 满时处理
-        // 教学版优化：批量写入场景下，延迟 flush 可减少 90% 的文件 I/O
+        // Do not flush immediately — handled by background thread or when buffer full
+        // edu edition optimization: batch write scenarios, delayed flush reduces 90% file I/O
 
-        // 5. 执行存储变更（逐条处理）
+        // 5. Execute storage changes (row by row)
         let mut graph = self.graph.borrow_mut();
         let mut def_registry = self.def_registry.borrow_mut();
         let uuid_index = self.uuid_index.borrow();
@@ -179,7 +179,7 @@ impl<'a> Transaction<'a> {
         drop(uuid_index);
         drop(column);
 
-        // 6. 释放锁
+        // 6. release locks
         drop(_guards);
         self.active_txs.remove(self.tx_id);
 
@@ -187,7 +187,7 @@ impl<'a> Transaction<'a> {
     }
 }
 
-/// 全局事务 ID 生成器
+/// Globaltransaction ID generate
 pub struct TxIdGenerator {
     counter: AtomicU64,
 }

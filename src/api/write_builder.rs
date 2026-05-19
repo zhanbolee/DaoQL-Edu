@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 写入构建器
+//! Write Builder
 //!
-//! 教学说明：
-//! - 链式 API 构建写入操作
-//! - 支持 Being 创建、更新、删除
-//! - 关系建立
+//! Educational Notes:
+//! - chain API buildwriteoperation
+//! - support Being Create、Update、Delete
+//! - Relationestablish
 
 use std::cell::RefCell;
 
@@ -28,7 +28,7 @@ use crate::id::{BeingId, NodeOffset};
 use crate::index::uuid_index::UuidIndex;
 use crate::relation::Relation;
 
-/// 写入构建器
+/// Write builder
 pub struct WriteBuilder<'a> {
     graph: &'a RefCell<GraphStore>,
     def_registry: &'a RefCell<DefRegistry>,
@@ -44,7 +44,7 @@ impl<'a> WriteBuilder<'a> {
         Self { graph, def_registry, uuid_index }
     }
 
-    /// 创建 Being，写入图存储，返回 (BeingId, NodeOffset)
+    /// Create Being，writeGraph storage，return (BeingId, NodeOffset)
     pub fn create_being(&self, being: Being) -> Result<(BeingId, NodeOffset), DaoQLError> {
         let mut def_registry = self.def_registry.borrow_mut();
         let def = crate::def::Def::new(&being.core.def);
@@ -55,14 +55,14 @@ impl<'a> WriteBuilder<'a> {
         Ok((being.core.id, offset))
     }
 
-    /// 建立关系，写入图存储
+    /// establishRelation，writeGraph storage
     pub fn create_relation(&self, relation: Relation) -> Result<(), DaoQLError> {
         let mut graph = self.graph.borrow_mut();
         graph.create_edge(&relation)?;
         Ok(())
     }
 
-    /// 删除 Being（软删除：标记 status = 0）
+    /// Delete Being (soft delete: mark status = 0)
     pub fn delete_being(&self, id: BeingId) -> Result<(), DaoQLError> {
         let uuid_index = self.uuid_index.borrow();
         let offset = uuid_index.get(id)?

@@ -11,11 +11,11 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! DSL API 入口
+//! DSL API Entry Point
 //!
-//! 教学说明：
-//! - 将 DSL 字符串解析并执行
-//! - 统一入口：execute_dsl(dsl_str)
+//! Educational Notes:
+//! - will parse and execute DSL string
+//! - unified entry point：execute_dsl(dsl_str)
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -42,7 +42,7 @@ impl DslApi {
         }
     }
 
-    /// 执行 DSL 字符串
+    /// Execute DSL string
     pub fn execute(
         &self,
         dsl: &str,
@@ -56,7 +56,7 @@ impl DslApi {
         self.executor.execute(&ast, graph, def_registry, vector_indices, uuid_index, column)
     }
 
-    /// 解析 DSL（不执行）
+    /// Parse DSL (without execute)
     pub fn parse(&self, dsl: &str) -> Result<DslQuery, DaoQLError> {
         let mut parser = Parser::new(dsl)?;
         parser.parse()

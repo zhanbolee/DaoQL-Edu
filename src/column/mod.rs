@@ -11,14 +11,14 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 列引擎（Column Engine）
+//! Column Engine
 //!
-//! 教学说明：
-//! - 双层架构：RawLayer（行存）+ ProjectedLayer（列存）
-//! - RawLayer：append-only，适合文档灵活性
-//! - ProjectedLayer：热点字段列式物化，适合聚合分析
-//! - Skip Index：Granule 级 min/max，查询剪枝
-//! - SIMD 聚合：f64x4 向量化执行
+//! Educational Notes:
+//! - dual-layer architecture：RawLayer (row store) + ProjectedLayer (column store)
+//! - RawLayer: append-only, suitable for document flexibility
+//! - ProjectedLayer: hot field columnar materialization，suitable for aggregate analysis
+//! - Skip Index: Granule level min/max, query pruning
+//! - SIMD Aggregate: f64x4 vectorized execution
 
 pub mod aggregation;
 pub mod compressor;

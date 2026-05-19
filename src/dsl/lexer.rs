@@ -11,18 +11,18 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! DSL 词法分析器
+//! DSL Lexer
 //!
-//! 教学说明：
-//! - 将输入字符串切分为 Token 序列
-//! - 支持：关键字、标识符、字符串、数字、符号
+//! Educational Notes:
+//! - will input string split into token sequence
+//! - support: keywords, identifiers, string, number, symbol
 
 use crate::error::DaoQLError;
 
-/// Token 类型
+/// Token type
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
-    // 关键字
+    // Keywords
     Query,
     Mutation,
     Analyze,
@@ -44,14 +44,14 @@ pub enum Token {
     Lt,
     Gte,
     Lte,
-    // 类型
+    // type
     Int,
     Float,
     String,
     Bool,
     Array,
     Map,
-    // 符号
+    // symbol
     LeftBrace,
     RightBrace,
     LeftParen,
@@ -64,16 +64,16 @@ pub enum Token {
     Equal,
     Arrow,
     At,
-    // 字面量
+    // literal
     Identifier(String),
     StringLiteral(String),
     Number(f64),
-    // 特殊
+    // special
     Newline,
     EOF,
 }
 
-/// 词法分析器
+/// Tokenize
 pub struct Lexer<'a> {
     pos: usize,
     chars: Vec<char>,
@@ -89,7 +89,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    /// 获取下一个 Token
+    /// Getnext Token
     pub fn next_token(&mut self) -> Result<Token, DaoQLError> {
         self.skip_whitespace();
 
@@ -137,11 +137,11 @@ impl<'a> Lexer<'a> {
             }
             _ if ch.is_ascii_digit() => self.read_number(),
             _ if ch.is_alphabetic() || ch == '_' => self.read_identifier(),
-            _ => Err(DaoQLError::DslParse(format!("非法字符: {}", ch))),
+            _ => Err(DaoQLError::DslParse(format!("illegal character: {}", ch))),
         }
     }
 
-    /// 读取所有 Token
+    /// Readall Token
     pub fn tokenize(&mut self) -> Result<Vec<Token>, DaoQLError> {
         let mut tokens = Vec::new();
         loop {
@@ -171,16 +171,16 @@ impl<'a> Lexer<'a> {
     }
 
     fn read_string(&mut self, quote: char) -> Result<Token, DaoQLError> {
-        self.pos += 1; // 跳过左引号
+        self.pos += 1; // skip left quote
         let start = self.pos;
         while self.pos < self.chars.len() && self.chars[self.pos] != quote {
             self.pos += 1;
         }
         if self.pos >= self.chars.len() {
-            return Err(DaoQLError::DslParse("未闭合的字符串".to_string()));
+            return Err(DaoQLError::DslParse("unclosed string".to_string()));
         }
         let s: String = self.chars[start..self.pos].iter().collect();
-        self.pos += 1; // 跳过右引号
+        self.pos += 1; // skip right quote
         Ok(Token::StringLiteral(s))
     }
 
@@ -200,7 +200,7 @@ impl<'a> Lexer<'a> {
         }
         let s: String = self.chars[start..self.pos].iter().collect();
         let num = s.parse::<f64>()
-            .map_err(|e| DaoQLError::DslParse(format!("数字解析失败: {e}")))?;
+            .map_err(|e| DaoQLError::DslParse(format!("number parse failed: {e}")))?;
         Ok(Token::Number(num))
     }
 

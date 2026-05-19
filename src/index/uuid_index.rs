@@ -11,12 +11,12 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! UUID → NodeOffset 索引
+//! UUID → NodeOffset Index
 //!
-//! 教学说明：
-//! - 使用 redb B+Tree，键 = UUID 字符串，值 = NodeOffset（u64）
-//! - 强一致性：写入事务完成时同步更新
-//! - 点查路径：UUID → redb 查 offset → mmap 读 NodeRecord
+//! Educational Notes:
+//! - use redb B+Tree，key = UUID string，value = NodeOffset（u64）
+//! - strong consistency: synchronous update when write transaction completes
+//! - point query path: UUID → redb lookup offset → mmap read NodeRecord
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -27,23 +27,23 @@ use redb::{Database, Durability, ReadableTableMetadata, TableDefinition};
 use crate::error::DaoQLError;
 use crate::id::{BeingId, NodeOffset};
 
-/// redb 表定义
+/// redb table definition
 const UUID_TABLE: TableDefinition<&str, u64> = TableDefinition::new("uuid_to_offset");
 
-/// UUID 索引
+/// UUID index
 pub struct UuidIndex {
     db: Database,
-    /// 事务持久化级别（benchmark 可设为 None 跳过 fsync）
+    /// Transaction persistence level (benchmark can set to None to skip fsync)
     durability: Durability,
-    /// 内存缓存（benchmark 模式启用，避免 redb B-tree 遍历）
+    /// Memory cache (benchmark mode enabled, avoid redb B-tree traverse)
     cache: RefCell<Option<HashMap<String, NodeOffset>>>,
 }
 
 impl UuidIndex {
-    /// 打开或创建索引数据库
+    /// Open or create index database
     pub fn open(path: impl AsRef<Path>) -> Result<Self, DaoQLError> {
         let db = Database::create(path)?;
-        // 初始化表
+        // Initialize table
         let tx = db.begin_write()?;
         {
             let _ = tx.open_table(UUID_TABLE)?;
@@ -56,17 +56,17 @@ impl UuidIndex {
         })
     }
 
-    /// 设置持久化级别（用于 benchmark 模式跳过 fsync）
+    /// Setpersistence level（used for benchmark modeskip fsync）
     pub fn set_durability(&mut self, durability: Durability) {
         self.durability = durability;
     }
 
-    /// 启用内存缓存（benchmark 模式大幅加速点查）
+    /// Enable memory cache (benchmark mode greatly accelerates point query)
     pub fn enable_cache(&self) {
         *self.cache.borrow_mut() = Some(HashMap::new());
     }
 
-    /// 插入映射
+    /// Insert mapping
     pub fn insert(&self, id: BeingId, offset: NodeOffset) -> Result<(), DaoQLError> {
         let mut tx = self.db.begin_write()?;
         tx.set_durability(self.durability);
@@ -81,7 +81,7 @@ impl UuidIndex {
         Ok(())
     }
 
-    /// 查询偏移
+    /// Queryoffset
     pub fn get(&self, id: BeingId) -> Result<Option<NodeOffset>, DaoQLError> {
         let hex = id.to_hex();
         if let Some(ref cache) = *self.cache.borrow() {
@@ -95,7 +95,7 @@ impl UuidIndex {
         }
     }
 
-    /// 删除映射
+    /// Delete mapping
     pub fn remove(&self, id: BeingId) -> Result<bool, DaoQLError> {
         let mut tx = self.db.begin_write()?;
         tx.set_durability(self.durability);
@@ -111,7 +111,7 @@ impl UuidIndex {
         Ok(existed)
     }
 
-    /// 批量插入（同一事务）
+    /// Batch insert (same transaction)
     pub fn batch_insert(&self, items: &[(BeingId, NodeOffset)]) -> Result<(), DaoQLError> {
         let mut tx = self.db.begin_write()?;
         tx.set_durability(self.durability);
@@ -130,14 +130,14 @@ impl UuidIndex {
         Ok(())
     }
 
-    /// 统计条目数
+    /// Statisticsentry count
     pub fn len(&self) -> Result<u64, DaoQLError> {
         let tx = self.db.begin_read()?;
         let table = tx.open_table(UUID_TABLE)?;
         Ok(table.len()?)
     }
 
-    /// 是否为空
+    /// Is empty
     pub fn is_empty(&self) -> Result<bool, DaoQLError> {
         Ok(self.len()? == 0)
     }

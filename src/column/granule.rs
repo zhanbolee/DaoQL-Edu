@@ -11,16 +11,16 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! Granule — 列存储数据块（64KB）
+//! Granule — column storage data block (64KB)
 //!
-//! 教学说明：
-//! - Granule 是列式存储的基本 I/O 单元
-//! - 固定 64KB 大小，匹配操作系统页大小，减少 I/O 放大
-//! - 每个 Granule 包含一段连续的列值 + Skip Index 元数据
+//! Educational Notes:
+//! - Granule is column store basic I/O unit
+//! - fixed 64KB size, matches OS page size，reduce I/O amplification
+//! - each Granule contains a continuous column value + Skip Index metadata
 
 use crate::column::skip_index::GranuleMeta;
 
-/// 数据 Granule
+/// Data Granule
 pub struct Granule {
     pub meta: GranuleMeta,
     pub data: Vec<u8>,

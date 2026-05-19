@@ -11,13 +11,13 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 图存储引擎
+//! Graph Storage Engine
 //!
-//! 教学说明：
-//! - 基于 mmap 定长记录（NodeRecord/EdgeRecord）
-//! - 免索引邻接：边通过 next_out/next_in 指针内联链接
-//! - 更新 = 创建新版本，旧版本保留（MVCC）
-//! - 所有 unsafe 转换都经过边界检查
+//! Educational Notes:
+//! - Based on mmap fixed-length records (NodeRecord/EdgeRecord)
+//! - Index-free adjacency: edges inline-linked via next_out/next_in pointers
+//! - Update = Create new version，oldversionreserve（MVCC）
+//! - all unsafe conversions go through boundary checks
 
 use std::sync::Arc;
 
@@ -30,14 +30,14 @@ use crate::relation::Relation;
 use crate::storage::StorageManager;
 use crate::transaction::TxId;
 
-/// 图存储引擎
+/// Graph storageengine
 #[derive(Clone)]
 pub struct GraphStore {
-    /// 存储管理器
+    /// Storage manager
     pub storage: Arc<StorageManager>,
-    /// 锁管理器
+    /// Lockmanager
     pub locks: LockManager,
-    /// 当前事务号（用于 MVCC）
+    /// Current transaction number（used for MVCC）
     pub current_tx: TxId,
 }
 
@@ -50,34 +50,34 @@ impl GraphStore {
         }
     }
 
-    /// 获取可变存储引用（教学版：单线程安全）
+    /// Get mutable storage reference (edu edition: single-thread safe)
     ///
     /// # SAFETY
-    /// - 仅在单线程中使用
-    /// - 调用者保证没有并发访问
+    /// - only used single-threaded
+    /// - caller guarantees no concurrent access
     unsafe fn storage_mut(&mut self) -> &mut StorageManager {
         let ptr = Arc::as_ptr(&self.storage);
         &mut *(ptr as *mut StorageManager)
     }
 
-    /// 设置当前事务号
+    /// Set current transaction number
     pub fn set_tx(&mut self, tx_id: TxId) {
         self.current_tx = tx_id;
     }
 
-    /// 创建节点，返回偏移量
+    /// Create node, return offset
     ///
-    /// 流程：
-    /// 1. 分配 NodeRecord
-    /// 2. 填充 BeingCore 字段
-    /// 3. 返回 offset（后续用于索引）
+    /// Flow：
+    /// 1. allocate NodeRecord
+    /// 2. filling BeingCore field
+    /// 3. return offset (subsequently used for index)
     pub fn create_node(&mut self, core: &BeingCore, def_type_code: u16) -> Result<NodeOffset, DaoQLError> {
         let offset = unsafe { self.storage_mut() }.alloc_node()?;
         let idx = (offset / NodeRecord::SIZE as u64) as usize;
 
         {
             let buf = unsafe { self.storage_mut() }.nodes.get_mut(idx)?;
-            // SAFETY: buf 长度 = NodeRecord::SIZE，且已检查索引范围
+            // SAFETY: buf length = NodeRecord::SIZE, index range checked
             let rec = unsafe { &mut *(buf.as_mut_ptr() as *mut NodeRecord) };
             *rec = NodeRecord::new(core.id);
             rec.def_type_code = def_type_code;
@@ -98,38 +98,38 @@ impl GraphStore {
         Ok(offset)
     }
 
-    /// 读取节点（只读）
+    /// Read node（read-only）
     pub fn read_node(&self, offset: NodeOffset) -> Result<&NodeRecord, DaoQLError> {
         let idx = (offset / NodeRecord::SIZE as u64) as usize;
         let buf = self.storage.nodes.get(idx)?;
-        // SAFETY: buf 长度正确，已检查索引
+        // SAFETY: buf length correct, index checked
         let rec = unsafe { &*(buf.as_ptr() as *const NodeRecord) };
         Ok(rec)
     }
 
-    /// 读取节点（可变）
+    /// Read node（mutable）
     pub fn read_node_mut(&mut self, offset: NodeOffset) -> Result<&mut NodeRecord, DaoQLError> {
         let idx = (offset / NodeRecord::SIZE as u64) as usize;
         let buf = unsafe { self.storage_mut() }.nodes.get_mut(idx)?;
-        // SAFETY: buf 长度正确，已检查索引，&mut self 保证排他
+        // SAFETY: buf length correct, index checked，&mut self guarantee exclusive
         let rec = unsafe { &mut *(buf.as_mut_ptr() as *mut NodeRecord) };
         Ok(rec)
     }
 
-    /// 创建边
+    /// Create edge
     ///
-    /// 流程：
-    /// 1. 分配 EdgeRecord
-    /// 2. 填充 from_id/to_id/relation_type
-    /// 3. 链接到 from 节点的出边链表
-    /// 4. 链接到 to 节点的入边链表
+    /// Flow：
+    /// 1. allocate EdgeRecord
+    /// 2. filling from_id/to_id/relation_type
+    /// 3. link to from Nodeoutgoing edge linked list
+    /// 4. link to to Nodeincoming edge linked list
     pub fn create_edge(&mut self, relation: &Relation) -> Result<NodeOffset, DaoQLError> {
         let edge_offset = unsafe { self.storage_mut() }.alloc_edge()?;
         let edge_idx = (edge_offset / EdgeRecord::SIZE as u64) as usize;
 
-        // 获取 from/to 节点的 offset
-        // 教学版简化：假设 offset 从 BeingId 映射已建立
-        // 实际应从索引层查询
+        // get from/to Node offset
+        // edu edition simplification: assume offset already mapped from BeingId
+        // actual should be secondary index level query
         let from_offset = self.find_node_offset(relation.from_id)?;
         let to_offset = self.find_node_offset(relation.to_id)?;
 
@@ -147,24 +147,24 @@ impl GraphStore {
             rec.weight = relation.weight;
         }
 
-        // 链接到 from 节点的出边链表（头插法）
+        // link to from Nodeoutgoing edge linked list（head insertion）
         self.link_out_edge(from_offset, edge_offset)?;
 
-        // 链接到 to 节点的入边链表
+        // link to to Nodeincoming edge linked list
         if relation.directed {
             self.link_in_edge(to_offset, edge_offset)?;
         } else {
-            // 无向边：双向链接
+            // undirected edge: bidirectional link
             self.link_out_edge(to_offset, edge_offset)?;
             self.link_in_edge(to_offset, edge_offset)?;
-            // 反向也需要
+            // reverse also needed
             self.link_in_edge(from_offset, edge_offset)?;
         }
 
         Ok(edge_offset)
     }
 
-    /// 链接出边（头插法）
+    /// Link outgoing edge（head insertion）
     fn link_out_edge(
         &mut self,
         node_offset: NodeOffset,
@@ -174,7 +174,7 @@ impl GraphStore {
         let old_first = node.first_out_edge_offset;
         node.first_out_edge_offset = edge_offset;
 
-        // 更新新边的 next_out
+        // Updatenewedge next_out
         let edge_idx = (edge_offset / EdgeRecord::SIZE as u64) as usize;
         let buf = unsafe { self.storage_mut() }.edges.get_mut(edge_idx)?;
         let edge = unsafe { &mut *(buf.as_mut_ptr() as *mut EdgeRecord) };
@@ -183,7 +183,7 @@ impl GraphStore {
         Ok(())
     }
 
-    /// 链接入边（头插法）
+    /// Link incoming edge（head insertion）
     fn link_in_edge(
         &mut self,
         node_offset: NodeOffset,
@@ -201,7 +201,7 @@ impl GraphStore {
         Ok(())
     }
 
-    /// 获取所有出边
+    /// Get all outgoing edges
     pub fn out_edges(&self, node_offset: NodeOffset) -> Result<Vec<&EdgeRecord>, DaoQLError> {
         let node = self.read_node(node_offset)?;
         let mut edges = Vec::new();
@@ -220,7 +220,7 @@ impl GraphStore {
         Ok(edges)
     }
 
-    /// 获取所有入边
+    /// Get all incoming edges
     pub fn in_edges(&self, node_offset: NodeOffset) -> Result<Vec<&EdgeRecord>, DaoQLError> {
         let node = self.read_node(node_offset)?;
         let mut edges = Vec::new();
@@ -239,9 +239,9 @@ impl GraphStore {
         Ok(edges)
     }
 
-    /// 通过 BeingId 查找节点偏移（教学版：线性扫描）
+    /// Find node offset by BeingId (edu edition: linear scan)
     ///
-    /// 生产版应使用 UUID→Offset 索引。
+    /// Production version should use UUID→Offset index。
     pub fn find_node_offset(&self, id: BeingId) -> Result<NodeOffset, DaoQLError> {
         for i in 0..self.storage.node_count() {
             let buf = self.storage.nodes.get(i)?;
@@ -253,12 +253,12 @@ impl GraphStore {
         Err(DaoQLError::NotFound(id))
     }
 
-    /// 获取节点数量
+    /// GetNode count
     pub fn node_count(&self) -> usize {
         self.storage.node_count()
     }
 
-    /// 获取边数量
+    /// GetEdge count
     pub fn edge_count(&self) -> usize {
         self.storage.edge_count()
     }

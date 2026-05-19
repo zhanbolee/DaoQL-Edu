@@ -11,11 +11,11 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! DSL 执行器
+//! DSL Executor
 //!
-//! 教学说明：
-//! - AST → 查询计划 → 执行
-//! - 支持 query/mutation/analyze/define/similar 的真实执行
+//! Educational Notes:
+//! - AST → Queryplan → Execute
+//! - support query/mutation/analyze/define/similar real execution
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -28,7 +28,7 @@ use crate::graph::store::GraphStore;
 use crate::index::uuid_index::UuidIndex;
 use crate::vector::hnsw::HnswIndex;
 
-/// 评估 FilterExpr 对给定 Being 是否成立
+/// Evaluate FilterExpr whether holds for given Being
 fn evaluate_filter(being: &crate::being::Being, filter: &FilterExpr) -> bool {
     match filter {
         FilterExpr::Eq { field, value } => match field.as_str() {
@@ -69,7 +69,7 @@ fn evaluate_filter(being: &crate::being::Being, filter: &FilterExpr) -> bool {
     }
 }
 
-/// DSL 执行器
+/// DSL Execute
 pub struct DslExecutor;
 
 impl DslExecutor {
@@ -77,7 +77,7 @@ impl DslExecutor {
         Self
     }
 
-    /// 执行 DSL 查询
+    /// Execute DSL query
     pub fn execute(
         &self,
         query: &DslQuery,
@@ -89,7 +89,7 @@ impl DslExecutor {
     ) -> Result<DslResult, DaoQLError> {
         match query {
             DslQuery::Query { target, filter, projections, limit, history: _, aggregate } => {
-                // 如果有aggregate，走列存聚合fast path
+                // if has aggregate, go column store aggregate fast path
                 if let Some((col_name, op_name)) = aggregate {
                     let agg_op = match op_name.as_str() {
                         "count" | "COUNT" => crate::column::AggregateOp::Count,
@@ -229,7 +229,7 @@ impl DslExecutor {
                         drop(uuid_index);
                         let being = crate::being::Being { core, ext: None, embeddings: HashMap::new() };
                         column.borrow_mut().project(&being)?;
-                        Ok(DslResult::Message(format!("创建 {target}")))
+                        Ok(DslResult::Message(format!("Create {target}")))
                     }
                     MutationOp::Update => {
                         let mut graph = graph.borrow_mut();
@@ -249,7 +249,7 @@ impl DslExecutor {
                                 }
                             }
                         }
-                        Ok(DslResult::Message(format!("更新 {target}")))
+                        Ok(DslResult::Message(format!("Update {target}")))
                     }
                     MutationOp::Delete => {
                         let mut graph = graph.borrow_mut();
@@ -263,14 +263,14 @@ impl DslExecutor {
                                 }
                             }
                         }
-                        Ok(DslResult::Message(format!("删除 {target}")))
+                        Ok(DslResult::Message(format!("Delete {target}")))
                     }
                 }
             }
             DslQuery::Analyze { algorithm, target, limit } => {
                 let mut graph_mut = graph.borrow_mut();
                 let k = limit.unwrap_or(10);
-                // 在图引擎中查找 target 对应的起始节点
+                // in graph engine find target corresponding to start node
                 let mut start_offset = None;
                 for i in 0..graph_mut.node_count() {
                     let offset = (i * NodeRecord::SIZE) as u64;
@@ -360,17 +360,17 @@ impl DslExecutor {
                     def = def.with_field(field);
                 }
                 def_registry.register(def);
-                Ok(DslResult::Message(format!("定义 {name}")))
+                Ok(DslResult::Message(format!("Define {name}")))
             }
             DslQuery::Similar { target: _target, query_vector, k } => {
                 let graph = graph.borrow();
                 let mut items = Vec::new();
-                // 取第一个可用的向量索引执行搜索
+                // Take first available vector index to execute search
                 if let Some((_, index)) = vector_indices.iter().next() {
                     let results = index.search(query_vector, *k)?;
                     for result in results {
                         if let Ok(Some(offset)) = uuid_index.borrow().get(result.id) {
-                            // 先收集关系信息（避免与后续 read_node 的引用冲突）
+                            // Collect relation info first (avoid borrow conflict with subsequent read_node)
                             let mut related = Vec::new();
                             if let Ok(edges) = graph.out_edges(offset) {
                                 let edge_targets: Vec<_> = edges.iter().map(|e| e.to_id).collect();
@@ -393,7 +393,7 @@ impl DslExecutor {
                                     obj.insert("def".to_string(), serde_json::json!(being.core.def));
                                     obj.insert("distance".to_string(), serde_json::json!(result.distance));
 
-                                    // 读取列存属性
+                                    // read column store attribute
                                     let col = column.borrow();
                                     if let Some(w) = col.column("weight").and_then(|c| c.get(being.core.id)) {
                                         obj.insert("weight".to_string(), serde_json::json!(w));
@@ -426,7 +426,7 @@ impl Default for DslExecutor {
     }
 }
 
-/// DSL 执行结果
+/// DSL Executeresult
 #[derive(Debug, Clone)]
 pub enum DslResult {
     Message(String),

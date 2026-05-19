@@ -11,24 +11,24 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 压缩器 — lz4_flex 封装
+//! Compressor — lz4_flex wrapper
 //!
-//! 教学说明：
-//! - lz4 是一种超快速的压缩算法，压缩比适中，速度极快
-//! - 适合实时数据引擎：压缩/解压延迟 < 1ms/MB
-//! - 教学版使用纯 Rust 实现 lz4_flex，无需 C 依赖
+//! Educational Notes:
+//! - lz4 is an ultra-fast compression algorithm，compression ratio moderate，speed extremely fast
+//! - suitable for real-time data engine：compress/decompress latency < 1ms/MB
+//! - edu edition uses pure Rust lz4_flex，no C dependencies
 
 use crate::error::DaoQLError;
 
-/// 压缩数据
+/// Compress data
 pub fn compress(data: &[u8]) -> Vec<u8> {
     lz4_flex::compress(data)
 }
 
-/// 解压数据
+/// Decompress data
 pub fn decompress(data: &[u8], uncompressed_size: usize) -> Result<Vec<u8>, DaoQLError> {
     lz4_flex::decompress(data, uncompressed_size)
-        .map_err(|e| DaoQLError::InvalidState(format!("解压失败: {e:?}")))
+        .map_err(|e| DaoQLError::InvalidState(format!("decompress failed: {e:?}")))
 }
 
 #[cfg(test)]

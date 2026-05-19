@@ -11,14 +11,14 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 查询路由器
+//! Query Router
 //!
-//! 教学说明：
-//! - 根据查询特征判定走哪条引擎
-//! - 路由规则：点查→图、聚合→列、向量→向量、混合→多引擎
+//! Educational Notes:
+//! - determine which engine based on query features
+//! - route rule: point query→graph, aggregate→column, vector→vector, mixed→multi-engine
 
 
-/// 查询目标引擎
+/// Query target engine
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EngineRoute {
     Graph,
@@ -27,7 +27,7 @@ pub enum EngineRoute {
     Multi,
 }
 
-/// 查询路由器
+/// Query router
 pub struct QueryRouter;
 
 impl QueryRouter {
@@ -35,7 +35,7 @@ impl QueryRouter {
         Self
     }
 
-    /// 路由查询
+    /// routeQuery
     pub fn route(&self, query_type: &str) -> EngineRoute {
         match query_type {
             "point" | "traversal" => EngineRoute::Graph,

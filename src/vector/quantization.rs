@@ -11,16 +11,16 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 向量量化 — 减少内存占用
+//! Vector Quantization — reduces memory usage
 //!
-//! 教学说明：
-//! - 标量量化(SQ)：将 f32 压缩为 u8（1/4 内存）
-//! - 二进制量化(BQ)：将 f32 转为 0/1 位图（1/32 内存）
-//! - 量化有损：精度换内存，适合大规模向量检索
+//! Educational Notes:
+//! - Scalar quantization (SQ): will compress f32 to u8 (1/4 memory)
+//! - Binary quantization (BQ): will convert f32 to 0/1 bit graph (1/32 memory)
+//! - Quantization is lossy: precision for memory, suitable for large-scale vector retrieval
 
-/// 标量量化：f32 → u8
+/// Scalar quantization：f32 → u8
 ///
-/// 将向量值映射到 [0, 255] 范围：
+/// willvectorvaluemapto [0, 255] range：
 /// quantized = clamp((value - min) / (max - min) * 255, 0, 255)
 pub struct ScalarQuantization {
     pub min: f32,
@@ -55,10 +55,10 @@ impl ScalarQuantization {
     }
 }
 
-/// 二进制量化：f32 → bit
+/// binaryQuantization：f32 → bit
 ///
-/// 正值 → 1，负值/零 → 0
-/// 使用 Hamming 距离替代浮点距离，计算极快
+/// positive value → 1, negative value/zero → 0
+/// Use Hamming distance instead of float distance, compute extremely fast
 pub struct BinaryQuantization;
 
 impl BinaryQuantization {
@@ -73,7 +73,7 @@ impl BinaryQuantization {
         bits
     }
 
-    /// Hamming 距离 = 不同位的数量
+    /// Hamming distance = different bit count
     pub fn hamming_distance(a: &[u8], b: &[u8]) -> u32 {
         a.iter()
             .zip(b.iter())
@@ -93,7 +93,7 @@ mod tests {
         let q = sq.quantize(&vec);
         let d = sq.dequantize(&q);
 
-        // 量化有损，但应在合理范围内
+        // Quantization is lossy, but should be in reasonable range
         for (orig, deq) in vec.iter().zip(d.iter()) {
             assert!((orig - deq).abs() < 0.01);
         }
@@ -103,7 +103,7 @@ mod tests {
     fn test_binary_quantization() {
         let vec = vec![-1.0, 0.5, -0.3, 0.8];
         let bits = BinaryQuantization::quantize(&vec);
-        // 预期: 0, 1, 0, 1 → 二进制 1010 → 0x0A（小端）
+        // Expected: 0, 1, 0, 1 → binary 1010 → 0x0A (little-endian)
         assert_eq!(bits[0], 0b00001010);
     }
 
@@ -111,7 +111,7 @@ mod tests {
     fn test_hamming_distance() {
         let a = vec![0b10101010u8];
         let b = vec![0b11110000u8];
-        // 10101010 ^ 11110000 = 01011010 → 位1,3,5,6 = 4 个不同
+        // 10101010 ^ 11110000 = 01011010 → bits 1,3,5,6 = 4 differences
         assert_eq!(BinaryQuantization::hamming_distance(&a, &b), 4);
     }
 }

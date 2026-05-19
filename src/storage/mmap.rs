@@ -11,18 +11,18 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! mmap 存储抽象
+//! mmap Storage Abstraction
 //!
-//! 教学说明：
-//! - 这是项目中 unsafe 代码最集中的模块
-//! - mmap 将文件映射到进程虚拟地址空间，实现零拷贝 I/O
-//! - 定长记录设计：offset = index * record_size，O(1) 随机访问
-//! - 自动扩容：当文件满时，重新 mmap 更大的文件
+//! Educational Notes:
+//! - this is the module with most concentrated unsafe code in the project
+//! - mmap maps file to process virtual address space，implement zero-copy I/O
+//! - fixed-lengthrecorddesign：offset = index * record_size，O(1) random access
+//! - auto expand: when file full, re-mmap larger file
 //!
-//! SAFETY 注意事项：
-//! - 所有指针操作前必须有长度检查
-//! - mmap 生命周期绑定到 MmapStore（Drop 时自动 unmap）
-//! - 多线程安全：通过 &mut self 保证排他访问
+//! SAFETY notes：
+//! - all pointer operations must have length check
+//! - mmap lifecycle bound to MmapStore（auto unmap on Drop）
+//! - multi-thread safe: via &mut self guarantee exclusive access
 
 use std::fs::{File, OpenOptions};
 use std::path::Path;
@@ -31,39 +31,39 @@ use memmap2::{MmapMut, MmapOptions};
 
 use crate::error::{DaoQLError, StorageError};
 
-/// mmap 定长记录存储
+/// mmap fixed-length record storage
 ///
-/// 将文件映射为定长记录的数组：
+/// will file map as fixed-length record count group：
 /// ```ignore
 /// file_layout = [Record0][Record1][Record2]...[RecordN]
 /// offset_of(i) = i * record_size
 /// ```ignore
 pub struct MmapStore {
-    /// 底层文件
+    /// Lower layerfile
     file: File,
-    /// mmap 映射
+    /// mmap map
     mmap: MmapMut,
-    /// 单条记录大小（字节）
+    /// single record size（bytes）
     record_size: usize,
-    /// 当前可容纳的记录数
+    /// Current capacity record count
     capacity: usize,
-    /// 下一个可分配的索引
+    /// Next allocatable index
     next_free: usize,
-    /// 文件路径（用于扩容时重新打开）
+    /// File path (used for re-open when expanding)
     #[allow(dead_code)]
     path: std::path::PathBuf,
-    /// 初始容量（用于创建新文件）
+    /// Initial capacity (used for creating new file)
     #[allow(dead_code)]
     initial_capacity: usize,
 }
 
 impl MmapStore {
-    /// 打开或创建 mmap 存储
+    /// OpenOrCreate mmap store
     ///
-    /// # 参数
-    /// - path: 文件路径
-    /// - record_size: 单条记录大小（如 1536 或 256）
-    /// - initial_capacity: 初始记录数（新文件时）
+    /// # parameter
+    /// - path: filepath
+    /// - record_size: single record size（e.g. 1536 Or 256）
+    /// - initial_capacity: initial record count（when new file）
     pub fn open_or_create(
         path: impl AsRef<Path>,
         record_size: usize,
@@ -84,20 +84,20 @@ impl MmapStore {
             }))?;
 
         let (mmap, capacity, next_free) = if file_exists {
-            // 已有文件：获取大小，计算容量
+            // already has file: get size, compute capacity
             let metadata = file.metadata()?;
             let file_size = metadata.len() as usize;
             let capacity = file_size / record_size;
-            // SAFETY: 文件已存在且可写，mmap 生命周期由 self 管理
+            // SAFETY: file already exists and writable，mmap lifecycle managed by self
             let mmap = unsafe { MmapOptions::new().map_mut(&file)? };
-            // 扫描找到 next_free（教学版简化：假设文件是紧凑的）
-            let next_free = capacity; // 简化：假设所有位置都已使用
+            // Scan to find next_free (edu edition simplification: assume file is compact)
+            let next_free = capacity; // simplify: assume all positions already used
             (mmap, capacity, next_free)
         } else {
-            // 新文件：预分配初始大小
+            // new file: pre-allocate initial size
             let file_size = record_size * initial_capacity;
             file.set_len(file_size as u64)?;
-            // SAFETY: 新创建的文件，大小已设置
+            // SAFETY: newCreatefile，sizealreadyset
             let mmap = unsafe { MmapOptions::new().len(file_size).map_mut(&file)? };
             (mmap, initial_capacity, 0)
         };
@@ -113,9 +113,9 @@ impl MmapStore {
         })
     }
 
-    /// 分配新的记录索引
+    /// Allocatenewrecordindex
     ///
-    /// 返回索引号，调用者用 index * record_size 计算字节偏移
+    /// Return index number, caller uses index * record_size to compute byte offset
     pub fn alloc(&mut self) -> Result<usize, DaoQLError> {
         if self.next_free >= self.capacity {
             self.grow()?;
@@ -125,10 +125,10 @@ impl MmapStore {
         Ok(idx)
     }
 
-    /// 批量分配记录索引
+    /// Batchallocaterecordindex
     ///
-    /// 相比逐条 alloc，只需一次 capacity 检查和可能的 grow，
-    /// 减少锁/原子操作和 mmap 页错误。
+    /// compared to individual alloc, only one capacity check and possible grow，
+    /// reduce lock/atomic operations and mmap page errors。
     pub fn alloc_batch(&mut self, count: usize) -> Result<Vec<usize>, DaoQLError> {
         if count == 0 {
             return Ok(Vec::new());
@@ -141,19 +141,19 @@ impl MmapStore {
         Ok((start..start + count).collect())
     }
 
-    /// 扩容（翻倍）
+    /// expand (double)
     fn grow(&mut self) -> Result<(), DaoQLError> {
         let new_capacity = self.capacity * 2;
         let new_size = new_capacity * self.record_size;
 
-        // 扩大文件
+        // expand file
         self.file.set_len(new_size as u64)?;
 
-        // 重新 mmap
-        // SAFETY: 文件已扩大，旧 mmap 已 drop
+        // re- mmap
+        // SAFETY: file expanded，old mmap already drop
         drop(std::mem::replace(
             &mut self.mmap,
-            // SAFETY: 文件已扩大，我们有独占写权限
+            // SAFETY: file expanded, we have exclusive write permission
             unsafe { MmapOptions::new().len(new_size).map_mut(&self.file)? },
         ));
 
@@ -161,11 +161,11 @@ impl MmapStore {
         Ok(())
     }
 
-    /// 读取记录（只读）
+    /// Readrecord（read-only）
     ///
     /// # SAFETY
-    /// - index 必须在有效范围内
-    /// - 返回的切片生命周期受 &self 约束
+    /// - index must be in valid range
+    /// - returned slice lifetime is bound by &self constraint
     pub fn get(&self, index: usize) -> Result<&[u8], DaoQLError> {
         if index >= self.capacity {
             return Err(DaoQLError::Storage(StorageError::OffsetOutOfBounds {
@@ -174,7 +174,7 @@ impl MmapStore {
             }));
         }
         let offset = index * self.record_size;
-        // SAFETY: 已检查 index 范围，mmap 有效
+        // SAFETY: checked index range，mmap valid
         let slice = unsafe {
             std::slice::from_raw_parts(
                 self.mmap.as_ptr().add(offset),
@@ -184,11 +184,11 @@ impl MmapStore {
         Ok(slice)
     }
 
-    /// 读取记录（可变）
+    /// Readrecord（mutable）
     ///
     /// # SAFETY
-    /// - index 必须在有效范围内
-    /// - 返回的切片生命周期受 &mut self 约束，保证排他访问
+    /// - index must be in valid range
+    /// - returned slice lifetime is bound by &mut self constraint，guarantee exclusive access
     pub fn get_mut(&mut self, index: usize) -> Result<&mut [u8], DaoQLError> {
         if index >= self.capacity {
             return Err(DaoQLError::Storage(StorageError::OffsetOutOfBounds {
@@ -197,7 +197,7 @@ impl MmapStore {
             }));
         }
         let offset = index * self.record_size;
-        // SAFETY: 已检查 index 范围，mmap 有效，&mut self 保证排他
+        // SAFETY: checked index range，mmap valid，&mut self guarantee exclusive
         let slice = unsafe {
             std::slice::from_raw_parts_mut(
                 self.mmap.as_mut_ptr().add(offset),
@@ -207,49 +207,49 @@ impl MmapStore {
         Ok(slice)
     }
 
-    /// 按字节偏移读取（用于外部索引存储的 offset）
+    /// Bybyte offsetread（used forexternalindexstore offset）
     pub fn get_at_offset(&self, offset: u64) -> Result<&[u8], DaoQLError> {
         let index = offset as usize / self.record_size;
         self.get(index)
     }
 
-    /// 按字节偏移可变读取
+    /// Bybyte offsetmutableread
     pub fn get_mut_at_offset(&mut self, offset: u64) -> Result<&mut [u8], DaoQLError> {
         let index = offset as usize / self.record_size;
         self.get_mut(index)
     }
 
-    /// 强制刷盘（fsync）
+    /// forceFlush（fsync）
     pub fn flush(&mut self) -> Result<(), DaoQLError> {
         self.mmap.flush()?;
         Ok(())
     }
 
-    /// 当前记录数
+    /// Currentrecord count
     pub fn len(&self) -> usize {
         self.next_free
     }
 
-    /// 是否为空
+    /// Is empty
     pub fn is_empty(&self) -> bool {
         self.next_free == 0
     }
 
-    /// 当前容量
+    /// Current capacity
     pub fn capacity(&self) -> usize {
         self.capacity
     }
 
-    /// 记录大小
+    /// Recordsize
     pub fn record_size(&self) -> usize {
         self.record_size
     }
 
-    /// 获取原始 mmap 指针（供高性能场景使用）
+    /// Get raw mmap pointer (for high-performance use)
     ///
     /// # SAFETY
-    /// - 调用者必须保证索引在有效范围内
-    /// - 调用者必须保证没有数据竞争
+    /// - caller must guarantee index in valid range
+    /// - caller must guarantee no data race
     pub unsafe fn raw_ptr(&mut self) -> *mut u8 {
         self.mmap.as_mut_ptr()
     }
@@ -292,14 +292,14 @@ mod tests {
         let mut store = MmapStore::open_or_create(&path, 64, 4).unwrap();
         let idx = store.alloc().unwrap();
 
-        // 写入数据
+        // Writedata
         {
             let buf = store.get_mut(idx).unwrap();
             buf[0..4].copy_from_slice(b"TEST");
             buf[4..8].copy_from_slice(&42u32.to_le_bytes());
         }
 
-        // 读取数据
+        // Read data
         {
             let buf = store.get(idx).unwrap();
             assert_eq!(&buf[0..4], b"TEST");
@@ -316,11 +316,11 @@ mod tests {
         let mut store = MmapStore::open_or_create(&path, 64, 2).unwrap();
         assert_eq!(store.capacity(), 2);
 
-        // 填满
+        // fill up
         store.alloc().unwrap();
         store.alloc().unwrap();
 
-        // 触发扩容
+        // trigger expansion
         store.alloc().unwrap();
         assert!(store.capacity() >= 4);
     }
@@ -330,7 +330,7 @@ mod tests {
         let path = temp_path("test_persist.dat");
         let _ = std::fs::remove_file(&path);
 
-        // 写入
+        // Write
         {
             let mut store = MmapStore::open_or_create(&path, 64, 4).unwrap();
             let idx = store.alloc().unwrap();
@@ -339,7 +339,7 @@ mod tests {
             store.flush().unwrap();
         }
 
-        // 重新打开
+        // re-open
         {
             let store = MmapStore::open_or_create(&path, 64, 4).unwrap();
             let buf = store.get(0).unwrap();

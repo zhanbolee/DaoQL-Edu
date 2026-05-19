@@ -11,13 +11,13 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! WAL 崩溃恢复
+//! WAL Crash Recovery
 //!
-//! 教学说明：
-//! - 启动时扫描 WAL 文件，解析所有有效记录
-//! - 按 seq 排序，回放已提交事务
-//! - 幂等回放：如果数据已存在，跳过（通过 BeingId 去重）
-//! - 损坏记录后的数据被视为无效（WAL 是顺序日志）
+//! Educational Notes:
+//! - at startup scan WAL file, parse all valid records
+//! - sort by seq, replay already committed transactions
+//! - idempotent replay: if data already exists, skip (via BeingId deduplication)
+//! - data after corrupted record is considered invalid (WAL is sequential log)
 
 use std::fs::File;
 use std::io::Read;
@@ -26,11 +26,11 @@ use std::path::Path;
 use crate::error::DaoQLError;
 use crate::wal::record::{TransactionPayload, WalRecord, WAL_MAGIC};
 
-/// WAL 恢复器
+/// WAL recovery
 pub struct WalRecovery;
 
 impl WalRecovery {
-    /// 扫描 WAL 文件，返回所有有效记录
+    /// Scan WAL file，returnall valid records
     pub fn scan(path: impl AsRef<Path>) -> Result<Vec<WalRecord>, DaoQLError> {
         let path = path.as_ref();
         if !path.exists() {
@@ -45,12 +45,12 @@ impl WalRecovery {
             return Ok(Vec::new());
         }
 
-        // 检查文件头魔数
+        // checkfile headermagic number
         if data[0..4] != WAL_MAGIC {
-            return Err(DaoQLError::Wal("WAL 文件魔数不匹配".to_string()));
+            return Err(DaoQLError::Wal("WAL file magic number mismatch".to_string()));
         }
 
-        // 跳过文件头（8 bytes）
+        // skipfile header（8 bytes）
         let mut offset = 8;
         let mut records = Vec::new();
 
@@ -61,26 +61,26 @@ impl WalRecovery {
                     records.push(record);
                 }
                 Ok((None, _)) => {
-                    // 数据不完整，停止
+                    // data incomplete，stop
                     break;
                 }
                 Err(e) => {
-                    // 记录损坏，停止（后续记录视为无效）
-                    eprintln!("WAL 恢复: 记录损坏于偏移 {offset}: {e}");
+                    // record corrupted, stop (subsequent records considered invalid)
+                    eprintln!("WAL recovery: record corrupted at offset {offset}: {e}");
                     break;
                 }
             }
         }
 
-        // 按 seq 排序
+        // sort by seq
         records.sort_by_key(|r| r.seq);
         Ok(records)
     }
 
-    /// 回放 WAL 记录
+    /// replay WAL record
     ///
-    /// 教学版简化：仅解析并返回事务负载，实际重做由上层调用者执行。
-    /// 生产版应在此直接修改存储。
+    /// edu edition simplification：only parse and return transaction payload, actual redo executed by upper layer caller。
+    /// Production version should directly modify storage here。
     pub fn replay(path: impl AsRef<Path>) -> Result<Vec<TransactionPayload>, DaoQLError> {
         let records = Self::scan(path)?;
         let mut payloads = Vec::with_capacity(records.len());
@@ -89,8 +89,8 @@ impl WalRecovery {
             match TransactionPayload::from_bytes(&record.payload) {
                 Ok(payload) => payloads.push(payload),
                 Err(e) => {
-                    eprintln!("WAL 恢复: 反序列化失败 seq={}: {e}", record.seq);
-                    // 跳过损坏的 payload，继续
+                    eprintln!("WAL recovery: deserializefailed seq={}: {e}", record.seq);
+                    // skip corrupted payload, continue
                 }
             }
         }
@@ -98,7 +98,7 @@ impl WalRecovery {
         Ok(payloads)
     }
 
-    /// 获取最后有效序列号
+    /// Get last valid sequence number
     pub fn last_seq(path: impl AsRef<Path>) -> Result<u64, DaoQLError> {
         let records = Self::scan(path)?;
         Ok(records.last().map(|r| r.seq).unwrap_or(0))
@@ -175,7 +175,7 @@ mod tests {
         let path = temp_path("corrupt.wal");
         let _ = std::fs::remove_file(&path);
 
-        // 写入有效数据 + 垃圾
+        // Write valid data + garbage
         {
             let mut writer = WalWriter::new(&path, 4096, 1000, true).unwrap();
             let payload = TransactionPayload::new(1);
@@ -184,7 +184,7 @@ mod tests {
             writer.shutdown().unwrap();
         }
 
-        // 追加垃圾
+        // append garbage
         {
             let mut file = std::fs::OpenOptions::new()
                 .append(true)
@@ -194,6 +194,6 @@ mod tests {
         }
 
         let records = WalRecovery::scan(&path).unwrap();
-        assert_eq!(records.len(), 1); // 只恢复有效记录
+        assert_eq!(records.len(), 1); // only recover valid records
     }
 }

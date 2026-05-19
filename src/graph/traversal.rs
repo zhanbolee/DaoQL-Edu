@@ -11,14 +11,14 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 图遍历算法
+//! Graph Traversal Algorithms
 //!
-//! 教学说明：
-//! - BFS（广度优先搜索）：层序遍历，适合最短路径
-//! - DFS（深度优先搜索）：递归/栈遍历，适合连通分量
-//! - PageRank：经典图算法，衡量节点重要性
+//! Educational Notes:
+//! - BFS (breadth-first search): level-order traversal, suitable for shortest path
+//! - DFS (depth-first search): recursive/stack traversal, suitable for connected components
+//! - PageRank: classic graph algorithm, measuring node importance
 //!
-//! 所有算法基于免索引邻接链表，时间复杂度：
+//! all algorithms based on index-free adjacency linked list, time complexity：
 //! - BFS/DFS: O(V + E)
 //! - PageRank: O(iterations × E)
 
@@ -29,19 +29,19 @@ use crate::graph::record::{EdgeRecord, NodeRecord};
 use crate::graph::store::GraphStore;
 use crate::id::{BeingId, NodeOffset};
 
-/// 边过滤器
+/// EdgeFilter
 #[derive(Clone)]
 pub struct EdgeFilter {
-    /// 限定关系类型（None = 全部）
+    /// Limit relation type (None = All)
     pub relation_type: Option<u16>,
-    /// 限定有向/无向（None = 全部）
+    /// Limit directed/undirected (None = All)
     pub directed: Option<bool>,
-    /// 最大权重
+    /// max weight
     pub max_weight: Option<f64>,
 }
 
 impl EdgeFilter {
-    /// 接受所有边
+    /// accept all edges
     pub fn all() -> Self {
         Self {
             relation_type: None,
@@ -50,7 +50,7 @@ impl EdgeFilter {
         }
     }
 
-    /// 按关系类型过滤
+    /// ByRelation typeFilter
     pub fn by_type(code: u16) -> Self {
         Self {
             relation_type: Some(code),
@@ -59,7 +59,7 @@ impl EdgeFilter {
         }
     }
 
-    /// 判断是否匹配
+    /// Check whether match
     pub fn matches(&self, edge: &EdgeRecord) -> bool {
         if let Some(rt) = self.relation_type {
             if edge.relation_type != rt {
@@ -81,14 +81,14 @@ impl EdgeFilter {
     }
 }
 
-/// BFS 遍历
+/// BFS traversal
 ///
-/// 参数：
-/// - start: 起始节点偏移
-/// - depth: 最大深度（0 = 仅起始节点）
-/// - filter: 边过滤器
+/// Parameter：
+/// - start: start node offset
+/// - depth: max depth (0 = only start node)
+/// - filter: edge filter
 ///
-/// 返回：按遍历顺序的 (节点偏移, 深度) 列表
+/// Return: list of (node offset, depth) in traversal order
 pub fn bfs(
     store: &mut GraphStore,
     start: NodeOffset,
@@ -114,7 +114,7 @@ pub fn bfs(
             .map(|edge| edge.to_id)
             .collect();
         for to_id in to_ids {
-            // 找到目标节点偏移
+            // find target node offset
             let target_offset = store.find_node_offset(to_id)?;
             if !visited.contains(&target_offset) {
                 visited.insert(target_offset);
@@ -127,14 +127,14 @@ pub fn bfs(
     Ok(result)
 }
 
-/// DFS 遍历
+/// DFS traversal
 ///
-/// 参数：
-/// - start: 起始节点偏移
-/// - depth: 最大深度
-/// - filter: 边过滤器
+/// Parameter：
+/// - start: start node offset
+/// - depth: max depth
+/// - filter: edge filter
 ///
-/// 返回：按遍历顺序的 (节点偏移, 深度) 列表
+/// Return: list of (node offset, depth) in traversal order
 pub fn dfs(
     store: &mut GraphStore,
     start: NodeOffset,
@@ -190,22 +190,22 @@ fn dfs_recursive(
     Ok(())
 }
 
-/// PageRank 算法
+/// PageRank algorithm
 ///
-/// 教学说明：
-/// - PageRank 是 Google 搜索引擎的核心算法
-/// - 思想：一个节点的重要性 = 所有指向它的节点的重要性之和（加权）
-/// - 公式：PR(u) = (1-d)/N + d × Σ(PR(v)/L(v))
-///   - d: 阻尼系数（通常 0.85）
-///   - N: 总节点数
-///   - L(v): v 的出边数
-///   - Σ: 对所有指向 u 的节点 v 求和
+/// Educational Notes:
+/// - PageRank is Google searchenginecorealgorithm
+/// - idea: a node's importance = sum of all nodes pointing to it (weighted)
+/// - formula：PR(u) = (1-d)/N + d × Σ(PR(v)/L(v))
+///   - d: damping factor（typically 0.85）
+///   - N: totalNodecount
+///   - L(v): v outgoing edge count
+///   - Σ: for all pointing to u node v sum
 ///
-/// 参数：
-/// - iterations: 迭代次数
-/// - damping: 阻尼系数
+/// Parameter：
+/// - iterations: iteration count
+/// - damping: damping factor
 ///
-/// 返回：BeingId → PageRank 值
+/// Return：BeingId → PageRank value
 pub fn pagerank(
     store: &mut GraphStore,
     iterations: usize,
@@ -219,7 +219,7 @@ pub fn pagerank(
     let n_f64 = n as f64;
     let base = (1.0 - damping) / n_f64;
 
-    // 初始化：所有节点 PR = 1/N
+    // Initialize: all nodes PR = 1/N
     let mut pr: HashMap<BeingId, f64> = HashMap::new();
     for i in 0..n {
         let offset = (i * NodeRecord::SIZE) as u64;
@@ -227,11 +227,11 @@ pub fn pagerank(
         pr.insert(node.id, 1.0 / n_f64);
     }
 
-    // 迭代
+    // iteration
     for _ in 0..iterations {
         let mut new_pr: HashMap<BeingId, f64> = HashMap::new();
 
-        // 计算所有 sink 节点（无出边）的 PR 总和，重新分配给所有节点
+        // compute all sink nodes（no outgoing edges） PR total sum，re-allocate to all nodes
         let mut sink_pr = 0.0;
         for i in 0..n {
             let offset = (i * NodeRecord::SIZE) as u64;
@@ -247,7 +247,7 @@ pub fn pagerank(
             let node_id = store.read_node(offset)?.id;
             let mut rank = base + sink_share;
 
-            // 获取所有入边
+            // get all incoming edges
             let in_edge_ids: Vec<BeingId> = store.in_edges(offset)?
                 .iter()
                 .map(|edge| edge.from_id)
@@ -268,9 +268,9 @@ pub fn pagerank(
     Ok(pr)
 }
 
-/// 查找最短路径（BFS）
+/// Findshortest path（BFS）
 ///
-/// 返回路径上的节点偏移列表（包含起点和终点）
+/// Return path node offset list（contains start and end）
 pub fn shortest_path(
     store: &mut GraphStore,
     start: NodeOffset,
@@ -287,7 +287,7 @@ pub fn shortest_path(
     while let Some(current) = queue.pop_front() {
         let node_id = store.read_node(current)?.id;
         if node_id == target {
-            // 重建路径
+            // rebuildpath
             let mut path = vec![current];
             let mut cur = current;
             while let Some(&p) = parent.get(&cur) {
@@ -313,7 +313,7 @@ pub fn shortest_path(
         }
     }
 
-    Err(DaoQLError::InvalidState("路径不存在".to_string()))
+    Err(DaoQLError::InvalidState("path does not exist".to_string()))
 }
 
 #[cfg(test)]
@@ -339,7 +339,7 @@ mod tests {
         let mut store = GraphStore::new(storage);
         store.set_tx(1);
 
-        // 创建 5 个节点：A -> B -> C -> D, A -> E
+        // Create 5 nodes: A -> B -> C -> D, A -> E
         let ids: Vec<_> = (0..5).map(|_| BeingId::new()).collect();
 
         for (i, &id) in ids.iter().enumerate() {
@@ -392,7 +392,7 @@ mod tests {
 
         let result = dfs(&mut store, off0, 3, None).unwrap();
         assert!(!result.is_empty());
-        assert_eq!(result[0].1, 0); // 起点深度为 0
+        assert_eq!(result[0].1, 0); // start depth is 0
     }
 
     #[test]
@@ -400,12 +400,12 @@ mod tests {
         let (mut store, _ids) = build_test_graph("pr");
         let pr = pagerank(&mut store, 10, 0.85).unwrap();
 
-        // 所有 PR 值之和 ≈ 1
+        // all PR value sum ≈ 1
         let sum: f64 = pr.values().sum();
         assert!((sum - 1.0).abs() < 0.01);
 
-        // A 有最多出边，PR 应较高
-        // D 没有出边，是 sink
+        // A has most outgoing edges, PR should be high
+        // D has no outgoing edges, is a sink
     }
 
     #[test]

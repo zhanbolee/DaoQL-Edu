@@ -11,17 +11,17 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! WAL 双缓冲组提交写入器
+//! WAL Dual-Buffer Group-Commit Writer
 //!
-//! 教学说明：
-//! - Buffer A：前台线程追加 WAL 记录（无锁）
-//! - Buffer B：后台线程 fsync 到磁盘
-//! - 切换条件：Buffer A 满（默认 4MB）或超时（默认 10ms）
-//! - 切换时短暂阻塞前台，直到 Buffer B fsync 完成
+//! Educational Notes:
+//! - Buffer A：foreground thread appends WAL record (no lock)
+//! - Buffer B：background thread fsyncs to disk
+//! - switch condition: Buffer A full (default 4MB) or timeout (default 10ms)
+//! - briefly blocks foreground during switch, until Buffer B fsync completes
 //!
-//! 为什么用双缓冲？
-//! - 单缓冲：每次写入都 fsync → 吞吐量极低（< 100 op/s）
-//! - 双缓冲：批量 fsync，减少系统调用，提升吞吐量 10-100x
+//! Why use dual-buffer?
+//! - single buffer: fsync on every write → extremely low throughput (< 100 op/s)
+//! - dual-buffer: batch fsync, reduce system calls, lifting throughput 10-100x
 
 use std::fs::{File, OpenOptions};
 use std::io::Write;
@@ -34,35 +34,35 @@ use std::time::{Duration, Instant};
 use crate::error::DaoQLError;
 use crate::wal::record::{WalRecord, WAL_MAGIC};
 
-/// WAL 写入器
+/// WAL writer
 pub struct WalWriter {
-    /// 目标文件
+    /// target file
     file: Arc<Mutex<File>>,
-    /// 前台缓冲区（Buffer A）
+    /// foreground buffer (Buffer A)
     buffer_a: Vec<u8>,
-    /// 后台缓冲区（Buffer B）
+    /// background buffer (Buffer B)
     buffer_b: Vec<u8>,
-    /// 单调递增序列号
+    /// monotonically increasing sequence number
     seq: AtomicU64,
-    /// 切换阈值（字节）
+    /// switch threshold (bytes)
     switch_threshold: usize,
-    /// 刷盘间隔（当前由 append 满阈值触发，此字段保留用于未来后台线程）
+    /// Flush interval (currently triggered by append reaching threshold, this field reserved for future background thread)
     #[allow(dead_code)]
     flush_interval: Duration,
-    /// 后台线程句柄
+    /// background thread handle
     bg_thread: Option<thread::JoinHandle<()>>,
-    /// 后台线程控制
+    /// background thread control
     shutdown_flag: Arc<AtomicBool>,
-    /// 条件变量：通知后台线程有数据
+    /// condition variable: notify background thread has data
     cond: Arc<(Mutex<bool>, Condvar)>,
-    /// 最后刷盘时间
+    /// last flush time
     last_flush: Instant,
-    /// 刷盘时是否执行 fsync（benchmark 可关闭以排除 I/O 噪声）
+    /// Whether to execute fsync on flush (can disable in benchmarks to exclude I/O noise)
     sync_on_flush: bool,
 }
 
 impl WalWriter {
-    /// 创建 WAL 写入器
+    /// Create WAL writer
     pub fn new(
         path: impl AsRef<Path>,
         buffer_size: usize,
@@ -74,12 +74,12 @@ impl WalWriter {
             .append(true)
             .open(path)?;
 
-        // 写入魔数（文件头）
+        // Writemagic number（file header）
         let mut file = file;
         let metadata = file.metadata()?;
         if metadata.len() == 0 {
             file.write_all(&WAL_MAGIC)?;
-            file.write_all(&[0u8; 4])?; // 版本/预留
+            file.write_all(&[0u8; 4])?; // version/reserved
             file.sync_all()?;
         }
 
@@ -91,7 +91,7 @@ impl WalWriter {
         let bg_shutdown = shutdown_flag.clone();
         let bg_cond = cond.clone();
 
-        // 启动后台刷盘线程
+        // start background flush thread
         let bg_thread = thread::spawn(move || {
             while !bg_shutdown.load(Ordering::Relaxed) {
                 let (lock, cvar) = &*bg_cond;
@@ -101,8 +101,8 @@ impl WalWriter {
                 *ready = false;
                 drop(ready);
 
-                // 后台线程定期检查并刷盘
-                // 实际刷盘由前台 swap_buffers 触发
+                // background thread periodically checks and flushes
+                // actual flush triggered by foreground swap_buffers
             }
         });
 
@@ -121,16 +121,16 @@ impl WalWriter {
         })
     }
 
-    /// 追加 WAL 记录
+    /// append WAL record
     ///
-    /// 线程安全：&mut self 保证单线程访问
+    /// Thread safety: &mut self guarantees single-threaded access
     pub fn append(&mut self, record: &WalRecord) -> Result<u64, DaoQLError> {
         let bytes = record.serialize();
         let seq = record.seq;
 
-        // 检查是否需要交换缓冲区（仅当 buffer 满时）
-        // 注意：不在 append 时检查时间，避免热路径上的系统调用
-        // 后台线程负责定时 flush
+        // check whether buffer swap is needed (only when buffer is full)
+        // Note: don't check time during append, avoid system calls on hot path
+        // background thread responsible for timed flush
         if self.buffer_a.len() + bytes.len() > self.switch_threshold {
             self.swap_buffers()?;
         }
@@ -139,18 +139,18 @@ impl WalWriter {
         Ok(seq)
     }
 
-    /// 交换缓冲区并刷盘
+    /// Swap buffer and flush
     fn swap_buffers(&mut self) -> Result<(), DaoQLError> {
         if self.buffer_a.is_empty() {
             return Ok(());
         }
 
-        // 交换 A ↔ B
+        // Swap A ↔ B
         std::mem::swap(&mut self.buffer_a, &mut self.buffer_b);
         self.buffer_a.clear();
         self.buffer_a.reserve(self.switch_threshold);
 
-        // 刷盘 Buffer B
+        // Flush Buffer B
         let buf = std::mem::take(&mut self.buffer_b);
         let mut file = self.file.lock().unwrap();
         file.write_all(&buf)?;
@@ -161,7 +161,7 @@ impl WalWriter {
 
         self.last_flush = Instant::now();
 
-        // 通知后台线程
+        // notify background thread
         let (lock, cvar) = &*self.cond;
         let mut ready = lock.lock().unwrap();
         *ready = true;
@@ -170,13 +170,13 @@ impl WalWriter {
         Ok(())
     }
 
-    /// 强制刷盘（同步）
+    /// forceFlush（synchronous）
     pub fn flush(&mut self) -> Result<(), DaoQLError> {
         self.swap_buffers()?;
         Ok(())
     }
 
-    /// 关闭写入器
+    /// Closewriter
     pub fn shutdown(&mut self) -> Result<(), DaoQLError> {
         self.flush()?;
         self.shutdown_flag.store(true, Ordering::Relaxed);
@@ -192,7 +192,7 @@ impl WalWriter {
         Ok(())
     }
 
-    /// 当前序列号
+    /// current sequence number
     pub fn next_seq(&self) -> u64 {
         self.seq.fetch_add(1, Ordering::SeqCst)
     }
@@ -232,9 +232,9 @@ mod tests {
 
         writer.flush().unwrap();
 
-        // 验证文件大小
+        // validatefilesize
         let meta = std::fs::metadata(&path).unwrap();
-        assert!(meta.len() > 8); // 至少包含魔数
+        assert!(meta.len() > 8); // at least contains magic number
     }
 
     #[test]
@@ -242,7 +242,7 @@ mod tests {
         let path = temp_path("test_switch.wal");
         let _ = std::fs::remove_file(&path);
 
-        // 小缓冲区，触发交换
+        // small buffer, triggers swap
         let mut writer = WalWriter::new(&path, 64, 1000, true).unwrap();
 
         for _ in 0..100 {
@@ -255,6 +255,6 @@ mod tests {
         writer.shutdown().unwrap();
 
         let meta = std::fs::metadata(&path).unwrap();
-        assert!(meta.len() > 100); // 应有大量数据
+        assert!(meta.len() > 100); // should have lots of data
     }
 }

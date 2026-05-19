@@ -11,24 +11,24 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 图记录格式 — mmap 定长记录定义
+//! Graph Record Format — fixed-length mmap record definitions
 //!
-//! 教学说明：
+//! Educational Notes:
 //! - NodeRecord = 1536 bytes, EdgeRecord = 264 bytes
-//! - 定长设计是图存储的核心：offset = index * size，O(1) 随机访问
-//! - 版本链指针内联存储（prev/next），无需额外索引即可回溯版本
-//! - Relation 计数限制：最多 32 条出边 + 32 条入边（教学版限制）
-//! - 边通过 next_out/next_in 指针形成邻接链表
+//! - fixed-lengthdesignisGraph storagecore：offset = index * size，O(1) random access
+//! - Version chain pointer inline store（prev/next），no extra index needed for backtracking version
+//! - Relation count restriction: at most 32 outgoing edges + 32 incoming edges（edu edition restriction）
+//! - edges form adjacency linked list via next_out/next_in pointers
 //!
 //! # SAFETY
-//! - 这些结构体用于 mmap，必须保证 repr(C, packed) 且大小固定
-//! - 字段顺序不可随意更改，否则破坏文件兼容性
+//! - these structs used for mmap，must guarantee repr(C, packed) and fixed size
+//! - field order cannot be changed arbitrarily，otherwise breaks file compatibility
 
 use crate::id::{BeingId, DefTypeCode, RelationTypeCode};
 
-/// 图节点记录 — 定长 1536 bytes
+/// GraphNode record — fixed-length 1536 bytes
 ///
-/// 内存布局：
+/// Memory layout：
 /// ```ignore
 /// [0..18]    id: BeingId (18 bytes)
 /// [18..20]   def_type_code: u16
@@ -55,7 +55,7 @@ use crate::id::{BeingId, DefTypeCode, RelationTypeCode};
 /// ```ignore
 #[repr(C)]
 pub struct NodeRecord {
-    // === 核心元数据 (90 bytes) ===
+    // === Core metadata (90 bytes) ===
     pub id: BeingId,
     pub def_type_code: DefTypeCode,
     pub status: u8,
@@ -65,15 +65,15 @@ pub struct NodeRecord {
     pub tx_begin: u64,
     pub tx_end: u64,
 
-    // === 版本链指针 (16 bytes) ===
+    // === Version chain pointer (16 bytes) ===
     pub prev_version_offset: u64,
     pub next_version_offset: u64,
 
-    // === 关系指针 (16 bytes) ===
+    // === Relation pointer (16 bytes) ===
     pub first_out_edge_offset: u64,
     pub first_in_edge_offset: u64,
 
-    // === 内联核心字段 (256 bytes) ===
+    // === Inline core fields (256 bytes) ===
     pub name: [u8; 64],
     pub code: [u8; 32],
     pub description: [u8; 128],
@@ -82,21 +82,21 @@ pub struct NodeRecord {
     _pad2: [u8; 4],
     pub category: [u8; 16],
 
-    // === 外部存储指针 (16 bytes) ===
+    // === External storage pointer (16 bytes) ===
     pub ext_offset: u64,
     pub embedding_offset: u64,
 
-    // === 类型名称 (64 bytes) ===
+    // === Type name (64 bytes) ===
     pub def_name: [u8; 64],
 
-    // === 预留空间 (1110 bytes) ===
+    // === Reserved space (1110 bytes) ===
     pub reserved: [u8; 1104],
 }
 
 impl NodeRecord {
     pub const SIZE: usize = 1536;
 
-    /// 创建空记录
+    /// Create empty record
     pub fn new(id: BeingId) -> Self {
         Self {
             id,
@@ -125,7 +125,7 @@ impl NodeRecord {
         }
     }
 
-    /// 设置类型名称（UTF-8，截断到 63 bytes + null）
+    /// Settype name（UTF-8，truncate to 63 bytes + null）
     pub fn set_def_name(&mut self, name: &str) {
         let bytes = name.as_bytes();
         let len = bytes.len().min(63);
@@ -133,13 +133,13 @@ impl NodeRecord {
         self.def_name[len] = 0;
     }
 
-    /// 获取类型名称（从 null-terminated C string）
+    /// Gettype name（secondary null-terminated C string）
     pub fn get_def_name(&self) -> String {
         let len = self.def_name.iter().position(|&b| b == 0).unwrap_or(64);
         String::from_utf8_lossy(&self.def_name[..len]).to_string()
     }
 
-    /// 设置名称（UTF-8，截断到 63 bytes + null）
+    /// Set name（UTF-8，truncate to 63 bytes + null）
     pub fn set_name(&mut self, name: &str) {
         let bytes = name.as_bytes();
         let len = bytes.len().min(63);
@@ -147,13 +147,13 @@ impl NodeRecord {
         self.name[len] = 0;
     }
 
-    /// 获取名称（从 null-terminated C string）
+    /// Get name（secondary null-terminated C string）
     pub fn get_name(&self) -> String {
         let len = self.name.iter().position(|&b| b == 0).unwrap_or(64);
         String::from_utf8_lossy(&self.name[..len]).to_string()
     }
 
-    /// 设置编码
+    /// Setencoding
     pub fn set_code(&mut self, code: &str) {
         let bytes = code.as_bytes();
         let len = bytes.len().min(31);
@@ -161,13 +161,13 @@ impl NodeRecord {
         self.code[len] = 0;
     }
 
-    /// 获取编码
+    /// Getencoding
     pub fn get_code(&self) -> String {
         let len = self.code.iter().position(|&b| b == 0).unwrap_or(32);
         String::from_utf8_lossy(&self.code[..len]).to_string()
     }
 
-    /// 设置描述
+    /// SetDescription
     pub fn set_description(&mut self, desc: &str) {
         let bytes = desc.as_bytes();
         let len = bytes.len().min(127);
@@ -175,13 +175,13 @@ impl NodeRecord {
         self.description[len] = 0;
     }
 
-    /// 获取描述
+    /// GetDescription
     pub fn get_description(&self) -> String {
         let len = self.description.iter().position(|&b| b == 0).unwrap_or(128);
         String::from_utf8_lossy(&self.description[..len]).to_string()
     }
 
-    /// 设置分类
+    /// SetCategory
     pub fn set_category(&mut self, cat: &str) {
         let bytes = cat.as_bytes();
         let len = bytes.len().min(15);
@@ -189,26 +189,26 @@ impl NodeRecord {
         self.category[len] = 0;
     }
 
-    /// 获取分类
+    /// GetCategory
     pub fn get_category(&self) -> String {
         let len = self.category.iter().position(|&b| b == 0).unwrap_or(16);
         String::from_utf8_lossy(&self.category[..len]).to_string()
     }
 
-    /// 是否为空记录
+    /// Is emptyrecord
     pub fn is_empty(&self) -> bool {
         self.id.is_null()
     }
 
-    /// 是否为当前活跃版本
+    /// Whether is current active version
     pub fn is_active(&self) -> bool {
         self.tx_end == u64::MAX
     }
 }
 
-/// 图边记录 — 定长 256 bytes
+/// GraphEdge record — fixed-length 256 bytes
 ///
-/// 内存布局：
+/// Memory layout：
 /// ```ignore
 /// [0..18]    from_id: BeingId
 /// [18..36]   to_id: BeingId
@@ -244,7 +244,7 @@ pub struct EdgeRecord {
 impl EdgeRecord {
     pub const SIZE: usize = 256;
 
-    /// 创建空边记录
+    /// Create empty Edge record
     pub fn empty() -> Self {
         Self {
             from_id: BeingId::null(),
@@ -263,7 +263,7 @@ impl EdgeRecord {
         }
     }
 
-    /// 设置名称
+    /// Set name
     pub fn set_name(&mut self, name: &str) {
         let bytes = name.as_bytes();
         let len = bytes.len().min(31);
@@ -271,19 +271,19 @@ impl EdgeRecord {
         self.name[len] = 0;
     }
 
-    /// 获取名称
+    /// Get name
     pub fn get_name(&self) -> String {
         let len = self.name.iter().position(|&b| b == 0).unwrap_or(32);
         String::from_utf8_lossy(&self.name[..len]).to_string()
     }
 
-    /// 是否为空边
+    /// Is emptyedge
     pub fn is_empty(&self) -> bool {
         self.from_id.is_null()
     }
 }
 
-// 编译时大小断言
+// compile-time size assertion
 #[allow(dead_code)]
 const fn assert_sizes() {
     assert!(std::mem::size_of::<NodeRecord>() == 1536);
@@ -307,8 +307,8 @@ mod tests {
     #[test]
     fn test_node_record_name_roundtrip() {
         let mut rec = NodeRecord::new(BeingId::new());
-        rec.set_name("Hello World 你好世界");
-        assert_eq!(rec.get_name(), "Hello World 你好世界");
+        rec.set_name("Hello World hello world");
+        assert_eq!(rec.get_name(), "Hello World hello world");
     }
 
     #[test]

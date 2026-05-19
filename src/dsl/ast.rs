@@ -11,19 +11,19 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! DSL AST（抽象语法树）
+//! DSL AST (Abstract Syntax Tree)
 //!
-//! 教学说明：
-//! - AST 是解析器和执行器之间的中间表示
-//! - 每个节点对应一种 DSL 语法结构
+//! Educational Notes:
+//! - AST is intermediate representation between parse and execute
+//! - each node corresponds to a DSL syntax structure
 
 use crate::being::Being;
 use crate::id::BeingId;
 
-/// DSL 查询类型
+/// DSL Querytype
 #[derive(Debug, Clone, PartialEq)]
 pub enum DslQuery {
-    /// 查询
+    /// Query
     Query {
         target: String,
         filter: Option<FilterExpr>,
@@ -32,24 +32,24 @@ pub enum DslQuery {
         history: Option<HistoryExpr>,
         aggregate: Option<(String, String)>,
     },
-    /// 变更
+    /// Mutation
     Mutation {
         op: MutationOp,
         target: String,
         input: Vec<(String, serde_json::Value)>,
     },
-    /// 分析
+    /// Analyze
     Analyze {
         algorithm: String,
         target: String,
         limit: Option<usize>,
     },
-    /// 类型定义
+    /// Type definition
     Define {
         name: String,
         fields: Vec<FieldDef>,
     },
-    /// 向量相似
+    /// Vector similarity
     Similar {
         target: String,
         query_vector: Vec<f32>,
@@ -57,7 +57,7 @@ pub enum DslQuery {
     },
 }
 
-/// 过滤表达式
+/// Filter expression
 #[derive(Debug, Clone, PartialEq)]
 pub enum FilterExpr {
     Eq { field: String, value: serde_json::Value },
@@ -69,7 +69,7 @@ pub enum FilterExpr {
     Or(Box<FilterExpr>, Box<FilterExpr>),
 }
 
-/// 历史表达式
+/// History expression
 #[derive(Debug, Clone, PartialEq)]
 pub enum HistoryExpr {
     All,
@@ -77,7 +77,7 @@ pub enum HistoryExpr {
     At(i64),
 }
 
-/// 变更操作
+/// Mutationoperation
 #[derive(Debug, Clone, PartialEq)]
 pub enum MutationOp {
     Create,
@@ -85,7 +85,7 @@ pub enum MutationOp {
     Delete,
 }
 
-/// 字段定义
+/// Field definition
 #[derive(Debug, Clone, PartialEq)]
 pub struct FieldDef {
     pub name: String,
@@ -94,7 +94,7 @@ pub struct FieldDef {
     pub default: Option<serde_json::Value>,
 }
 
-/// AST 节点
+/// AST Node
 #[derive(Debug, Clone, PartialEq)]
 pub enum AstNode {
     Query(DslQuery),

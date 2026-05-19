@@ -11,24 +11,24 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! Clock Sweep 缓存淘汰算法
+//! Clock Sweep cache eviction algorithm
 //!
-//! 教学说明：
-//! - 每个缓存页有一个 "引用位"（ref bit）
-//! - 扫描指针循环遍历所有页：
-//!   - ref = 1 → 置为 0，跳过（给第二次机会）
-//!   - ref = 0 → 淘汰该页
-//! - 16 分区：将缓存分成 16 个独立子缓存，减少锁竞争
+//! Educational Notes:
+//! - Each cache page has a "reference bit" (ref bit)
+//! - Scanpointer cycles through all pages：
+//!   - ref = 1 → set to 0，skip（give a second chance）
+//!   - ref = 0 → evict this page
+//! - 16 partition：divide cache into 16 independent sub-caches，reduce lock contention
 //!
-//! 为什么选 Clock Sweep？
-//! - 实现简单（一个循环指针 + 一个 bit）
-//! - 近似 LRU 效果（Second Chance）
-//! - 教学价值高（经典操作系统算法）
+//! why choose Clock Sweep？
+//! - simple implementation (a recurrent pointer + a bit)
+//! - approximate LRU effect (Second Chance)
+//! - high teaching value (classic OS algorithm)
 
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::RwLock;
 
-/// 缓存页
+/// Cachepage
 pub struct CachePage {
     pub key: u64,
     pub data: Vec<u8>,
@@ -47,7 +47,7 @@ impl CachePage {
     }
 }
 
-/// 缓存分区
+/// Cachepartition
 pub struct CacheShard {
     pub pages: RwLock<Vec<CachePage>>,
     pub clock_hand: AtomicUsize,
@@ -63,7 +63,7 @@ impl CacheShard {
         }
     }
 
-    /// 获取页
+    /// Get page
     pub fn get(&self, key: u64) -> Option<Vec<u8>> {
         let pages = self.pages.read().unwrap();
         if let Some(page) = pages.iter().find(|p| p.key == key) {
@@ -73,24 +73,24 @@ impl CacheShard {
         None
     }
 
-    /// 插入页
+    /// insertpage
     pub fn insert(&self, key: u64, data: Vec<u8>) {
         let mut pages = self.pages.write().unwrap();
 
-        // 如果已存在，更新
+        // if already exists, update
         if let Some(page) = pages.iter_mut().find(|p| p.key == key) {
             page.data = data;
             page.ref_bit.store(true, Ordering::Relaxed);
             return;
         }
 
-        // 如果未满，直接插入
+        // if not full, insert directly
         if pages.len() < self.max_pages {
             pages.push(CachePage::new(key, data));
             return;
         }
 
-        // Clock Sweep 找淘汰页
+        // Clock sweep finds evictable page
         let start = self.clock_hand.load(Ordering::Relaxed);
         let mut victim = None;
 
@@ -109,7 +109,7 @@ impl CacheShard {
     }
 }
 
-/// 页面缓存（多分区）
+/// Page cache (multi-partition)
 pub struct PageCache {
     pub shards: Vec<CacheShard>,
     pub num_shards: usize,
@@ -157,18 +157,18 @@ mod tests {
 
     #[test]
     fn test_cache_eviction() {
-        let cache = PageCache::new(4, 1); // 单分区，4 页
+        let cache = PageCache::new(4, 1); // single partition, 4 pages
         for i in 0..10 {
             cache.insert(i, vec![i as u8]);
         }
-        // 早插入的可能被淘汰
+        // early insert may be evicted
         let mut hits = 0;
         for i in 0..10 {
             if cache.get(i).is_some() {
                 hits += 1;
             }
         }
-        assert!(hits <= 4); // 最多命中 4 个
+        assert!(hits <= 4); // at most hit 4 
     }
 
     #[test]
@@ -177,12 +177,12 @@ mod tests {
         shard.insert(1, vec![1]);
         shard.insert(2, vec![2]);
 
-        // 反复访问页 1，给它第二次机会
+        // repeatedly access page 1, give it a second chance
         for _ in 0..10 {
             shard.get(1);
         }
 
-        // 插入新页，页 1 应该保留（因为被频繁访问）
+        // insert new page, page 1 should be reserved (because frequently accessed)
         shard.insert(3, vec![3]);
         assert!(shard.get(1).is_some());
     }

@@ -11,13 +11,13 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //
-//! 全局标识符系统
+//! Global Identifier System
 //!
-//! 教学说明：
+//! Educational Notes:
 //! - BeingId = shard_id(2B) + UUID v7(16B) = 18B
-//! - UUID v7 是时间排序的 UUID，使按时间顺序的插入天然有序
-//! - shard_id 预留分片扩展（教学版固定为 0）
-//! - 定长设计便于 mmap 内联存储
+//! - UUID v7 is time-sortable, making chronologically ordered inserts naturally sorted
+//! - shard_id reserved for sharding (edu edition fixed at 0)
+//! - Fixed-length design enables inline mmap storage
 
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -26,16 +26,16 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// 全局唯一实体标识符
+/// Globally unique entity identifier
 ///
-/// 内存布局（18 bytes）：
+/// Memory layout (18 bytes):
 /// ```ignore
 /// [shard_id: u16 | 2 bytes][uuid: Uuid | 16 bytes]
 /// ```ignore
 ///
-/// 使用 UUID v7（时间排序 UUID）的好处：
-/// - 时间戳在高位，按创建时间排序无需额外索引
-/// - 兼容标准 UUID 工具链
+/// Benefits of UUID v7 (time-sortable UUID):
+/// - Timestamp in high bits, sort by creation time without extra index
+/// - Compatible with standard UUID toolchain
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct BeingId {
     pub shard_id: u16,
@@ -43,10 +43,10 @@ pub struct BeingId {
 }
 
 impl BeingId {
-    /// 固定大小 18 bytes
+    /// Fixed size 18 bytes
     pub const SIZE: usize = 18;
 
-    /// 创建新的 BeingId（shard_id 固定为 0，教学版）
+    /// Create new BeingId (shard_id fixed at 0, edu edition)
     pub fn new() -> Self {
         Self {
             shard_id: 0,
@@ -54,12 +54,12 @@ impl BeingId {
         }
     }
 
-    /// 从 shard_id + UUID 创建
+    /// Create from shard_id + UUID
     pub fn from_parts(shard_id: u16, uuid: Uuid) -> Self {
         Self { shard_id, uuid }
     }
 
-    /// 序列化为 18 字节数组
+    /// Serialize to 18-byte array
     pub fn to_bytes(&self) -> [u8; 18] {
         let mut buf = [0u8; 18];
         buf[0..2].copy_from_slice(&self.shard_id.to_be_bytes());
@@ -67,7 +67,7 @@ impl BeingId {
         buf
     }
 
-    /// 从 18 字节数组解析
+    /// Parse from 18-byte array
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         if bytes.len() != 18 {
             return None;
@@ -77,9 +77,9 @@ impl BeingId {
         Some(Self { shard_id, uuid })
     }
 
-    /// 获取创建时间（从 UUID v7 提取）
+    /// Get creation time (extracted from UUID v7)
     ///
-    /// UUID v7 格式：
+    /// UUID v7 format:
     /// ```ignore
     /// 0                   1                   2                   3
     /// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -104,12 +104,12 @@ impl BeingId {
             | (bytes[5] as u64)
     }
 
-    /// 转换为字符串表示（hex）
+    /// Convert to string representation (hex)
     pub fn to_hex(&self) -> String {
         format!("{:04x}{}", self.shard_id, self.uuid.simple())
     }
 
-    /// 空值（全零）
+    /// Null value (all zeros)
     pub const fn null() -> Self {
         Self {
             shard_id: 0,
@@ -117,7 +117,7 @@ impl BeingId {
         }
     }
 
-    /// 是否为空
+    /// Is empty
     pub fn is_null(&self) -> bool {
         self.shard_id == 0 && self.uuid.is_nil()
     }
@@ -153,32 +153,32 @@ impl FromStr for BeingId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.len() < 4 {
-            return Err("BeingId 字符串过短".into());
+            return Err("BeingId string too short".into());
         }
         let shard_part = &s[0..4];
         let uuid_part = &s[4..];
         let shard_id = u16::from_str_radix(shard_part, 16)
-            .map_err(|e| crate::error::DaoQLError::InvalidState(format!("shard_id 解析失败: {e}")))?;
+            .map_err(|e| crate::error::DaoQLError::InvalidState(format!("shard_id parse failed: {e}")))?;
         let uuid = Uuid::parse_str(uuid_part)
-            .map_err(|e| crate::error::DaoQLError::InvalidState(format!("UUID 解析失败: {e}")))?;
+            .map_err(|e| crate::error::DaoQLError::InvalidState(format!("UUID parse failed: {e}")))?;
         Ok(Self { shard_id, uuid })
     }
 }
 
 // ============================================================================
-// 其他标识符
+// Other identifiers
 // ============================================================================
 
-/// 定义类型编码（教学版使用 u16，支持 65536 种类型）
+/// Define type encoding (edu edition uses u16, supporting 65536 types)
 pub type DefTypeCode = u16;
 
-/// 关系类型编码
+/// Relation type encoding
 pub type RelationTypeCode = u16;
 
-/// 节点在 mmap 文件中的偏移量（字节）
+/// Node offset in mmap file (bytes)
 pub type NodeOffset = u64;
 
-/// 边在 mmap 文件中的偏移量（字节）
+/// Edge offset in mmap file (bytes)
 pub type EdgeOffset = u64;
 
 #[cfg(test)]
