@@ -1,18 +1,19 @@
 <!--
-Copyright (c) 2026 黎展波 / Atlas Lee <4859345@qq.com>
-SPDX-License-Identifier: AGPL-3.0-or-later
+Copyright 2026 黎展波 / Atlas Lee <4859345@qq.com>
 
-本程序是自由软件：您可以在遵照自由软件基金会发布的
-GNU Affero 通用公共许可证（第3版或更新版本）条款的前提下，
-重新分发和/或修改本程序。
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-发布本程序是希望它能有所用，但不做任何担保；
-甚至没有对适销性或适用于特定用途的默示担保。
-详情请参见 GNU Affero 通用公共许可证。
+    http://www.apache.org/licenses/LICENSE-2.0
 
-您应该随本程序收到一份 GNU Affero 通用公共许可证的副本。
-如果没有，请参阅 <https://www.gnu.org/licenses/>。
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 -->
+
 
 
 # DaoQL-Edu 需求精化文档
