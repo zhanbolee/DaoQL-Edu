@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2026 黎展波 / Atlas Lee <4859345@qq.com>
+Copyright (c) 2026 Zhanbo Li / Atlas Lee <4859345@qq.com>
 SPDX-License-Identifier: BSL-1.1
 
 Licensed under the Business Source License, version 1.1 (the "License");
@@ -233,7 +233,7 @@ This is an educational project. Issues and PRs are welcome. All code comments an
 ## 许可证 / License
 
 ```
-Copyright (c) 2026 黎展波 / Atlas Lee <4859345@qq.com>
+Copyright (c) 2026 Zhanbo Li / Atlas Lee <4859345@qq.com>
 SPDX-License-Identifier: BSL-1.1
 
 Licensed under the Business Source License, version 1.1 (the "License");
@@ -254,4 +254,4 @@ See the [`LICENSE`](./LICENSE) file for details.
 
 ## 作者 / Author
 
-**黎展波 / Atlas Lee** <4859345@qq.com>
+**Zhanbo Li / Atlas Lee** <4859345@qq.com>
