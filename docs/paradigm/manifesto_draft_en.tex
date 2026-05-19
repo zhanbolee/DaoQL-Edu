@@ -1,120 +1,80 @@
-% Options for packages loaded elsewhere
-\PassOptionsToPackage{unicode}{hyperref}
-\PassOptionsToPackage{hyphens}{url}
-\documentclass[
-]{article}
-\usepackage{xcolor}
-\usepackage{amsmath,amssymb}
-\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
-\usepackage{iftex}
-\ifPDFTeX
-  \usepackage[T1]{fontenc}
-  \usepackage[utf8]{inputenc}
-  \usepackage{textcomp} % provide euro and other symbols
-\else % if luatex or xetex
-  \usepackage{unicode-math} % this also loads fontspec
-  \defaultfontfeatures{Scale=MatchLowercase}
-  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
-\fi
-\usepackage{lmodern}
-\ifPDFTeX\else
-  % xetex/luatex font selection
-\fi
-% Use upquote if available, for straight quotes in verbatim environments
-\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
-\IfFileExists{microtype.sty}{% use microtype if available
-  \usepackage[]{microtype}
-  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
-}{}
-\makeatletter
-\@ifundefined{KOMAClassName}{% if non-KOMA class
-  \IfFileExists{parskip.sty}{%
-    \usepackage{parskip}
-  }{% else
-    \setlength{\parindent}{0pt}
-    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
-}{% if KOMA class
-  \KOMAoptions{parskip=half}}
-\makeatother
-\usepackage{color}
-\usepackage{fancyvrb}
-\newcommand{\VerbBar}{|}
-\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
-% Add ',fontsize=\small' for more characters per line
-\newenvironment{Shaded}{}{}
-\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
-\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
-\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.49,0.56,0.16}{#1}}
-\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
-\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{#1}}
-\newcommand{\CharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
-\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textit{#1}}}
-\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
-\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.53,0.00,0.00}{#1}}
-\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
-\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.56,0.13,0.00}{#1}}
-\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
-\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.73,0.13,0.13}{\textit{#1}}}
-\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.00,0.00}{\textbf{#1}}}
-\newcommand{\ExtensionTok}[1]{#1}
-\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.25,0.63,0.44}{#1}}
-\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.02,0.16,0.49}{#1}}
-\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.00,0.50,0.00}{\textbf{#1}}}
-\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
-\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{\textbf{#1}}}
-\newcommand{\NormalTok}[1]{#1}
-\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.40,0.40,0.40}{#1}}
-\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.00,0.44,0.13}{#1}}
-\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.74,0.48,0.00}{#1}}
-\newcommand{\RegionMarkerTok}[1]{#1}
-\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
-\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.73,0.40,0.53}{#1}}
-\newcommand{\StringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
-\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.10,0.09,0.49}{#1}}
-\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.25,0.44,0.63}{#1}}
-\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.38,0.63,0.69}{\textbf{\textit{#1}}}}
-\usepackage{longtable,booktabs,array}
-\newcounter{none} % for unnumbered tables
-\usepackage{calc} % for calculating minipage widths
-% Correct order of tables after \paragraph or \subparagraph
-\usepackage{etoolbox}
-\makeatletter
-\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
-\makeatother
-% Allow footnotes in longtable head/foot
-\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
-\makesavenoteenv{longtable}
-\setlength{\emergencystretch}{3em} % prevent overfull lines
-\providecommand{\tightlist}{%
-  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
-\usepackage{bookmark}
-\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
-\urlstyle{same}
-\hypersetup{
-  hidelinks,
-  pdfcreator={LaTeX via pandoc}}
+\documentclass[11pt,a4paper]{article}
 
-\author{}
-\date{}
+% Encoding & Fonts
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage{amsfonts,amsmath,amssymb}
+\usepackage{microtype}
+
+% Page layout
+\usepackage{geometry}
+\geometry{a4paper,left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+
+% Line spacing
+\usepackage{setspace}
+\onehalfspacing
+
+% Abstract
+\usepackage{abstract}
+\renewcommand{\abstractnamefont}{\normalfont\bfseries}
+\renewcommand{\abstracttextfont}{\normalfont}
+
+% Author/Affiliation
+\usepackage{authblk}
+\renewcommand\Authfont{\normalfont}
+\renewcommand\Affilfont{\itshape\small}
+
+% Headers & Footers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Data-First Ontology}
+\fancyhead[R]{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Hyperlinks
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+
+% Tables
+\usepackage{booktabs,longtable,array}
+\usepackage{multirow}
+
+% Figures
+\usepackage{graphicx}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+
+% Code highlighting
+\usepackage{fancyvrb}
+\usepackage{xcolor}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\},fontsize=\small}
+
+% Math
+\usepackage{mathtools}
+
+% Lists
+\usepackage{enumitem}
+
+% Bibliography
+\usepackage[numbers]{natbib}
+
+% Footnotes
+\usepackage[bottom]{footmisc}
+
+% URL
+\usepackage{url}
+
+\title{Data-First Ontology: The World Model Resides in Data, Not in Weights}
+\author{Zhanbo Li / Atlas Lee\thanks{DAO is derived from the  Chinese philosophical concept ``道'' (Tao/Dao), signifying the origin  and governing principle of all things. It is unrelated to DAO  (Decentralized Autonomous Organization) in the blockchain context.}}
+\affil{DAO Project}
+\date{May 2026}
 
 \begin{document}
 
-\section{Data-First Ontology: The World Model Resides in Data, Not in
-Weights}\label{data-first-ontology-the-world-model-resides-in-data-not-in-weights}
+\maketitle
 
-\textbf{Author}: Zhanbo Li\\
-\textbf{Affiliation}: DAO Project\footnote{DAO is derived from the
-  Chinese philosophical concept ``道'' (Tao/Dao), signifying the origin
-  and governing principle of all things. It is unrelated to DAO
-  (Decentralized Autonomous Organization) in the blockchain context.}\\
-\textbf{Contact}: zhanbo.lee@hotmail.com\\
-\textbf{Date}: May 2026
-
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
-
-\subsection{Abstract}\label{abstract}
-
+\begin{abstract}
 Neural network weights in large language models are conventionally
 assumed to encode world models. This paper argues that this assumption
 exhibits structural limitations in scenarios demanding precision,
@@ -132,16 +92,14 @@ foundational primitives have been implemented with cross-engine unified
 storage, achieving practical performance levels. The theoretical
 framework for the complete six-primitive architecture is fully
 articulated; large-scale validation thereof is reserved for future work.
-
 \textbf{Keywords}: world model; ontology; large language model; data
 structure; data-first; explicit knowledge representation
+\end{abstract}
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
-
-\subsection{1. Introduction: The Crisis of World
+\section{Introduction: The Crisis of World
 Models}\label{introduction-the-crisis-of-world-models}
 
-\subsubsection{1.1 The Default Assumption}\label{the-default-assumption}
+\subsection{The Default Assumption}\label{the-default-assumption}
 
 Contemporary artificial intelligence rests upon a default assumption
 that is rarely stated explicitly: \textbf{the neural network weights of
@@ -171,7 +129,7 @@ uneditability --- are difficult to eradicate under a pure
 weight-encoding paradigm, because weights lack the atomic operational
 semantics possessed by explicit structure.
 
-\subsubsection{1.2 Four Structural Crises}\label{four-structural-crises}
+\subsection{Four Structural Crises}\label{four-structural-crises}
 
 \textbf{Hallucination.} Large language models generate text by sampling
 from a probability distribution conditioned on their input and training
@@ -233,7 +191,7 @@ operational semantics. In scenarios requiring precision, auditability,
 and real-time updates, world models require the support of explicit data
 structures.
 
-\subsubsection{1.3 Thought Experiment}\label{thought-experiment}
+\subsection{Thought Experiment}\label{thought-experiment}
 
 Imagine two libraries.
 
@@ -264,7 +222,7 @@ citations, and revision histories. The librarian (a large language
 model) is a sophisticated query engine, not the repository of knowledge.
 This inversion of roles is the central claim of this paper.
 
-\subsubsection{1.4 Position of This Paper}\label{position-of-this-paper}
+\subsection{Position of This Paper}\label{position-of-this-paper}
 
 We propose \textbf{Data-First Ontology}: a paradigm that treats the
 world model as an explicit computational structure rather than an
@@ -359,17 +317,16 @@ the research community.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{2. The Problem: Implicit vs.~Explicit World
+\section{The Problem: Implicit vs.~Explicit World
 Models}\label{the-problem-implicit-vs.-explicit-world-models}
 
-\subsubsection{2.1 What Is a World Model?}\label{what-is-a-world-model}
+\subsection{What Is a World Model?}\label{what-is-a-world-model}
 
 A world model is not merely a collection of facts. A telephone directory
 contains facts (names and numbers), but it is not a world model in the
 sense intended here. A genuine world model must support at least the
 following capabilities {[}9,10{]}:
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3529}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3824}}
@@ -407,7 +364,7 @@ An implicit world model encodes these capabilities as statistical
 patterns in neural network weights. An explicit world model encodes them
 as manipulable data structures.
 
-\subsubsection{2.2 Implicit World Model}\label{implicit-world-model}
+\subsection{Implicit World Model}\label{implicit-world-model}
 
 Formally, an implicit world model is a function:
 
@@ -444,7 +401,7 @@ fact, ``modify'' a specific relation, or ``verify'' a specific rule. The
 only available operations are forward inference (\(f_\theta(x)\)) and
 fine-tuning (updating \(\theta\), which is global and approximate).
 
-\subsubsection{2.3 Explicit World Model}\label{explicit-world-model}
+\subsection{Explicit World Model}\label{explicit-world-model}
 
 An explicit world model is a structured tuple:
 
@@ -503,7 +460,6 @@ of existents.''
 
 \textbf{Operations on the explicit world model}:
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3548}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3548}}
@@ -549,9 +505,8 @@ first-class objects. They can be independently read, modified, verified,
 and audited. Updating the population of Paris does not affect the
 population of Berlin.
 
-\subsubsection{2.4 Comparative Analysis}\label{comparative-analysis}
+\subsection{Comparative Analysis}\label{comparative-analysis}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1358}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4321}}
@@ -600,7 +555,7 @@ the query.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{3. Related Work}\label{related-work}
+\section{Related Work}\label{related-work}
 
 Before presenting Data-First Ontology, we must clarify this paper's
 relationship to existing work. This section surveys relevant research
@@ -608,7 +563,7 @@ along three dimensions: temporal and immutable databases, knowledge
 representation and knowledge graphs, and the combination of large
 language models with structured data.
 
-\subsubsection{3.1 Temporal and Immutable
+\subsection{Temporal and Immutable
 Databases}\label{temporal-and-immutable-databases}
 
 \textbf{Datomic} {[}11{]} is the closest precursor to the ideas in this
@@ -640,7 +595,7 @@ model. These systems record ``what happened,'' but unlike DaoQL, they do
 not treat time as an ontological dimension of existence --- in DaoQL,
 time is not an attribute, but the intrinsic structure of a Being.
 
-\subsubsection{3.2 Knowledge Representation and Knowledge
+\subsection{Knowledge Representation and Knowledge
 Graphs}\label{knowledge-representation-and-knowledge-graphs}
 
 \textbf{RDF/OWL/SPARQL} {[}14,15,16{]} constitute the technology stack
@@ -671,7 +626,7 @@ graph database models {[}32{]} notes that existing graph databases
 exhibit fundamental limitations in type systems and behavioral
 semantics.
 
-\subsubsection{3.3 Large Language Models and Structured
+\subsection{Large Language Models and Structured
 Data}\label{large-language-models-and-structured-data}
 
 \textbf{GraphRAG} {[}20{]}, proposed by Microsoft Research, is
@@ -706,7 +661,7 @@ at the storage layer --- the two are complementary rather than
 competitive. An LLM application based on MCP could use DaoQL as its
 structured memory backend.
 
-\subsubsection{3.4 Neuro-Symbolic
+\subsection{Neuro-Symbolic
 Integration}\label{neuro-symbolic-integration}
 
 \textbf{Neuro-symbolic AI} {[}25{]} is dedicated to combining the
@@ -720,10 +675,9 @@ infrastructure in a neuro-symbolic architecture --- providing the LLM
 (the neural side) with an explicit, verifiable structured knowledge
 base.
 
-\subsubsection{3.5 Summary of Distinctions from Existing
+\subsection{Summary of Distinctions from Existing
 Work}\label{summary-of-distinctions-from-existing-work}
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1774}}
   >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1452}}
@@ -789,7 +743,6 @@ columnar database, not a vector database, not a time-series database,
 not a full-text search engine --- yet it \textbf{simultaneously}
 possesses the capabilities of all these databases:
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.4054}}
   >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5946}}@{}}
@@ -836,10 +789,10 @@ LLM an operator of this model rather than its owner.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{4. Core Argument: Data-First
+\section{Core Argument: Data-First
 Ontology}\label{core-argument-data-first-ontology}
 
-\subsubsection{4.1 Three Propositions}\label{three-propositions}
+\subsection{Three Propositions}\label{three-propositions}
 
 We propose three mutually nested propositions that together define the
 Data-First Ontology paradigm. It should be noted in advance that the
@@ -953,7 +906,7 @@ support a world model surpassing the traditional fragmented database
 stack; Type and Contract are incremental enhancements, not necessary
 prerequisites.
 
-\subsubsection{4.2 Six Ontological
+\subsection{Six Ontological
 Primitives}\label{six-ontological-primitives}
 
 We now define the six primitives in detail.
@@ -1173,7 +1126,7 @@ implementation, version nodes are linked by bidirectional pointers
 (\texttt{prev\_version} / \texttt{next\_version}), functionally
 equivalent to the version chain in the formal definition.
 
-\subsubsection{4.3 Bootstrapping: A Self-Describing
+\subsection{Bootstrapping: A Self-Describing
 System}\label{bootstrapping-a-self-describing-system}
 
 The most radical property of Data-First Ontology is that \textbf{the
@@ -1181,7 +1134,6 @@ system describes itself}. There is no meta-level outside the data level.
 
 Consider how existing systems handle schema:
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1818}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3409}}
@@ -1294,7 +1246,7 @@ This bootstrapping property has far-reaching consequences:
   discover its own types, and reason about its own structure.
 \end{itemize}
 
-\subsubsection{4.4 Time as Ontology, Not
+\subsection{Time as Ontology, Not
 Attribute}\label{time-as-ontology-not-attribute}
 
 In conventional systems, time is an attribute:
@@ -1311,7 +1263,6 @@ version of the \texttt{Patient} Def entity.
 
 This inversion has operational consequences:
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.1447}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4474}}
@@ -1346,7 +1297,7 @@ The query \texttt{Being(X).history()} does not retrieve an external
 audit table, but traverses the entity's intrinsic version chain. Time is
 not metadata, but structure.
 
-\subsubsection{4.5 Behavior Embedded in the Storage
+\subsection{Behavior Embedded in the Storage
 Layer}\label{behavior-embedded-in-the-storage-layer}
 
 In conventional systems, behavior resides in the application layer. The
@@ -1419,10 +1370,10 @@ world model itself.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{5. Evidence: The DaoQL
+\section{Evidence: The DaoQL
 Implementation}\label{evidence-the-daoql-implementation}
 
-\subsubsection{5.1 Two-Phase Validation
+\subsection{Two-Phase Validation
 Strategy}\label{two-phase-validation-strategy}
 
 The validation of Data-First Ontology is divided into two phases,
@@ -1449,7 +1400,7 @@ powerful to support a world model storage system surpassing the
 traditional fragmented database stack; Type and Contract are incremental
 enhancements on top of this, not necessary prerequisites.
 
-\subsubsection{5.2 DaoQL-Edu: Pedagogical
+\subsection{DaoQL-Edu: Pedagogical
 Architecture}\label{daoql-edu-pedagogical-architecture}
 
 To validate the Phase-I claim, we have open-sourced \textbf{DaoQL-Edu}
@@ -1510,7 +1461,7 @@ production-grade distributed sharding. These components are implemented
 in the full DaoQL version; their theoretical definitions are in Section
 4.
 
-\subsubsection{5.3 Performance
+\subsection{Performance
 Measurements}\label{performance-measurements}
 
 The following measurements are from the DaoQL-Edu pedagogical version,
@@ -1538,7 +1489,6 @@ systems.
 64 GB RAM, NVMe SSD. Dataset is the XY-ERP synthetic dataset
 (approximately 1.9 million entities).
 
-{\def\LTcaptype{none} % do not increment counter
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2933}}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.3333}}
@@ -1601,7 +1551,7 @@ conditions --- this result supports the core claim of Phase I; the full
 DaoQL version possesses clear performance optimization depth on this
 foundation.
 
-\subsubsection{5.4 Full-Version Architecture
+\subsection{Full-Version Architecture
 Outlook}\label{full-version-architecture-outlook}
 
 The full DaoQL version adds Type, Contract, and Workflow components on
@@ -1629,7 +1579,7 @@ of Rust, 833 tests), but performance validation of Type and Contract,
 and distributed multi-node benchmarks, are reserved for future work (see
 Section 7).
 
-\subsubsection{5.5 Security and
+\subsection{Security and
 Compliance}\label{security-and-compliance}
 
 DaoQL includes a complete security framework:
@@ -1655,10 +1605,10 @@ every read or write.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{6. Philosophy: Computational Ontological
+\section{Philosophy: Computational Ontological
 Realism}\label{philosophy-computational-ontological-realism}
 
-\subsubsection{6.1 Dialogue with Existing Philosophical
+\subsection{Dialogue with Existing Philosophical
 Positions}\label{dialogue-with-existing-philosophical-positions}
 
 \textbf{Dialogue with Karl Popper's ``Three Worlds''}. Popper
@@ -1687,7 +1637,7 @@ not lie in its counterpart in the physical world, but in its causal
 efficacy within the computational structure: it can trigger contracts,
 change the state of other Beings, and leave immutable version records.
 
-\subsubsection{6.2 Core Philosophical
+\subsection{Core Philosophical
 Proposition}\label{core-philosophical-proposition}
 
 \begin{quote}
@@ -1719,7 +1669,7 @@ Three sub-propositions:
   but a position within a network of structure.
 \end{enumerate}
 
-\subsubsection{6.3 Metaphor: City and
+\subsection{Metaphor: City and
 Dream}\label{metaphor-city-and-dream}
 
 \begin{quote}
@@ -1736,13 +1686,13 @@ plan it. A city is not perfect, but it is governable.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{7. Future Work}\label{future-work}
+\section{Future Work}\label{future-work}
 
 Section 5 reported the engineering validation of Phase I (tool layer,
 four primitives). The following work remains incomplete, but has been
 planned at the theoretical level or partially implemented:
 
-\subsubsection{7.1 Counterfactual Consistency
+\subsection{Counterfactual Consistency
 Experiment}\label{counterfactual-consistency-experiment}
 
 We are designing a systematic experiment whose core hypothesis is:
@@ -1787,7 +1737,7 @@ higher consistency and interpretability, we would obtain critical
 empirical evidence supporting Data-First Ontology. This experiment is
 currently in the design phase; results will be reported in future work.
 
-\subsubsection{7.2 Other Future Work}\label{other-future-work}
+\subsection{Other Future Work}\label{other-future-work}
 
 \textbf{Performance validation of Type and Contract}. Section 4
 theoretically articulated the ontological roles of Type (hierarchical
@@ -1815,13 +1765,13 @@ the levels of cognitive science and philosophy.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{8. Limitations and
+\section{Limitations and
 Boundaries}\label{limitations-and-boundaries}
 
 The positions and evidence in this paper have the following limitations
 that must be honestly declared:
 
-\subsubsection{8.1 Limitations of Measurement
+\subsection{Limitations of Measurement
 Conditions}\label{limitations-of-measurement-conditions}
 
 The performance figures in Section 5 come from single-node, same-machine
@@ -1834,7 +1784,7 @@ gaps, such as Chinese full-text search) - Performance predictions under
 distributed deployment (\texttt{shard\_router.rs} V1 is implemented, but
 multi-node benchmarks are not yet complete)
 
-\subsubsection{8.2 Meta-Tool Layer Not
+\subsection{Meta-Tool Layer Not
 Validated}\label{meta-tool-layer-not-validated}
 
 The ontological value of Type (hierarchical specialization) and Contract
@@ -1844,7 +1794,7 @@ performance overhead and practical value. The DaoQL-Edu pedagogical
 version intentionally excludes these two primitives, to focus validation
 on the core capabilities of the tool layer.
 
-\subsubsection{8.3 Symbol Grounding Problem
+\subsection{Symbol Grounding Problem
 Unresolved}\label{symbol-grounding-problem-unresolved}
 
 LLM distillation as an acceleration mechanism for symbol grounding (see
@@ -1853,7 +1803,7 @@ The accuracy and recall of Def/Type/Relation automatically extracted
 from unstructured text are unknown; the current world model in DaoQL
 still requires substantial manual modeling investment.
 
-\subsubsection{8.4 Counterfactual Experiment
+\subsection{Counterfactual Experiment
 Pending}\label{counterfactual-experiment-pending}
 
 The counterfactual consistency experiment described in Section 7.1 is
@@ -1862,7 +1812,7 @@ paper's assertion that ``explicit world models possess advantages in
 consistency, interpretability, and editability'' is based primarily on
 theoretical analysis (Section 2.4) rather than empirical data.
 
-\subsubsection{8.5 Not a General-Purpose
+\subsection{Not a General-Purpose
 Database}\label{not-a-general-purpose-database}
 
 DaoQL is not a replacement for general-purpose databases. Its
@@ -1879,9 +1829,9 @@ DaoQL's correct positioning is ``unified storage for world models,'' not
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{9. Open Problems}\label{open-problems}
+\section{Open Problems}\label{open-problems}
 
-\subsubsection{9.1 Symbol Grounding}\label{symbol-grounding}
+\subsection{Symbol Grounding}\label{symbol-grounding}
 
 \begin{quote}
 How do symbols in Being/Def/Type/Relation ``connect'' to the real world?
@@ -1931,7 +1881,7 @@ network, the contract executions it participates in, and the changes in
 its historical versions. But LLM distillation greatly accelerates the
 initialization of this process.
 
-\subsubsection{9.2 Completeness}\label{completeness}
+\subsection{Completeness}\label{completeness}
 
 \begin{quote}
 Is the explicit world model sufficiently rich?
@@ -1971,7 +1921,7 @@ Completeness is not a prerequisite, but an \textbf{evolutionary goal}.
 The world model starts simple and continuously enriches through LLM
 distillation and human review.
 
-\subsubsection{9.3 Evolution Consistency}\label{evolution-consistency}
+\subsection{Evolution Consistency}\label{evolution-consistency}
 
 \begin{quote}
 When a world model evolves, how is contradiction prevented?
@@ -2045,10 +1995,10 @@ implicit consistency.
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{10. Conclusion: An
+\section{Conclusion: An
 Invitation}\label{conclusion-an-invitation}
 
-\subsubsection{10.1 Summary}\label{summary}
+\subsection{Summary}\label{summary}
 
 This paper has proposed Data-First Ontology: the world model should
 reside in data, not in neural network weights.
@@ -2071,7 +2021,7 @@ to ``Computational Ontological Realism'' --- the reality of a world
 model lies in its explicit construction, historical evolution, and
 causal behavior.
 
-\subsubsection{10.2 Invitation}\label{invitation}
+\subsection{Invitation}\label{invitation}
 
 We invite:
 
@@ -2102,7 +2052,7 @@ daoql-discuss@daoql.io
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\subsection{References}\label{references}
+\section{References}\label{references}
 
 {[}1{]} Kaplan, J., et al.~``Scaling laws for neural language models.''
 \emph{arXiv preprint arXiv:2001.08361} (2020).
