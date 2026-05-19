@@ -539,7 +539,7 @@ Def("处方").contracts = {
 
 ### 5.2 DaoQL-Edu：教学版架构
 
-为验证阶段一的主张，我们开源了 **DaoQL-Edu**——一个仅包含四种核心元语的教学实现。该版本足以验证跨引擎嵌套检索的核心能力，同时保持代码精简、易于理解和复现。
+为验证阶段一的主张，我们开源了 **DaoQL-Edu**（[github.com/zhanbolee/DaoQL-Edu](https://github.com/zhanbolee/DaoQL-Edu)）——一个仅包含四种核心元语的教学实现。该版本足以验证跨引擎嵌套检索的核心能力，同时保持代码精简、易于理解和复现。
 
 ```
 DaoQL-Edu 架构（四种元语）
@@ -839,7 +839,7 @@ DaoQL 的正确定位是"世界模型的统一存储"，而非"所有数据问�
 - **哲学家**：探索计算结构中的存在论和认识论问题——当知识栖居于数据结构而非心智或命题时，知识的本性是什么？
 
 > 如果你也相信"世界模型应该在数据中"，加入我们。
-> 源码：https://github.com/daoql/daoql
+> 源码（教学版）：https://github.com/zhanbolee/DaoQL-Edu
 > 讨论：daoql-discuss@daoql.io
 
 ---

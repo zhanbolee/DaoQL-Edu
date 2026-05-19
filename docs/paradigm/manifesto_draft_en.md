@@ -539,7 +539,7 @@ This stratified validation strategy is deliberate: even with only the most found
 
 ### 5.2 DaoQL-Edu: Pedagogical Architecture
 
-To validate the Phase-I claim, we have open-sourced **DaoQL-Edu** — a pedagogical implementation containing only four core primitives. This version is sufficient to validate the core capability of cross-engine nested retrieval, while keeping the codebase concise, comprehensible, and reproducible.
+To validate the Phase-I claim, we have open-sourced **DaoQL-Edu** ([github.com/zhanbolee/DaoQL-Edu](https://github.com/zhanbolee/DaoQL-Edu)) — a pedagogical implementation containing only four core primitives. This version is sufficient to validate the core capability of cross-engine nested retrieval, while keeping the codebase concise, comprehensible, and reproducible.
 
 ```
 DaoQL-Edu Architecture (Four Primitives)
@@ -839,7 +839,7 @@ We invite:
 - **Philosophers**: to explore ontological and epistemological questions in computational structures — when knowledge resides in data structures rather than in minds or propositions, what is the nature of knowledge?
 
 > If you also believe that "the world model should reside in data," join us.
-> Source code: https://github.com/daoql/daoql
+> Source code (pedagogical edition): https://github.com/zhanbolee/DaoQL-Edu
 > Discussion: daoql-discuss@daoql.io
 
 ---
