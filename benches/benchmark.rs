@@ -1,28 +1,18 @@
 // Copyright (c) 2026 Zhanbo Li / Atlas Lee <4859345@qq.com>
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Licensed under the Business Source License, version 1.1 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at:
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-//     https://spdx.org/licenses/BSL-1.1.html
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Affero General Public License for more details.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//
-//! DaoQL-Edu 压力测试
-//!
-//! 覆盖核心路径的真实性能测量：
-//! - 写入：Being 单条/批量写入、关系链式建立
-//! - 查询：点查、类型扫描、条件过滤、DSL 执行
-//! - 图遍历：BFS（星型图）、DFS（链式图）
-//! - 向量：HNSW 批量插入、近似最近邻搜索
-//!
-//! 设计原则：
-//! - 所有数据在 setup 阶段通过真实 API 写入
-//! - benchmark 只测量目标操作（查询/遍历/搜索）
-//! - 写入类测试在独立临时目录中执行，避免交叉污染
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use criterion::{
     black_box, criterion_group, criterion_main, BenchmarkId, Criterion, SamplingMode,

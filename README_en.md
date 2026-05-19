@@ -1,48 +1,51 @@
 <!--
 Copyright (c) 2026 Zhanbo Li / Atlas Lee <4859345@qq.com>
-SPDX-License-Identifier: BSL-1.1
+SPDX-License-Identifier: AGPL-3.0-or-later
 
-Licensed under the Business Source License, version 1.1 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at:
-    https://spdx.org/licenses/BSL-1.1.html
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
 # DaoQL-Edu
 
-> **中文**: DaoQL 教学版 —— 多模态数据引擎教育项目  
 > **English**: DaoQL Edu —— A Multimodal Data Engine for Education
 
-[![License](https://img.shields.io/badge/License-BSL%201.1-blue.svg)](./LICENSE)
+[![License](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](./LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.78%2B-orange.svg)](https://www.rust-lang.org)
 [![Tests](https://img.shields.io/badge/Tests-133%2F133%20passing-brightgreen.svg)]()
 
 ---
 
-## 简介 / Overview
+Overview
 
 **DaoQL-Edu** 是 [DaoQL](https://github.com/daoql/daoql) 多模态数据引擎的简化教学实现，专为数据库系统课程和自学者设计。它在保持核心架构完整的前提下，移除了工业级复杂度，使学习者能够清晰地理解图引擎、列存引擎、向量引擎和查询引擎的设计原理与实现细节。
 
 **DaoQL-Edu** is a simplified, educational implementation of the [DaoQL](https://github.com/daoql/daoql) multimodal data engine, designed for database systems courses and self-learners. It preserves the core architecture while removing industrial complexities, enabling learners to clearly understand the design principles and implementation details of graph, columnar, vector, and query engines.
 
-### 核心特性 / Key Features
+Key Features
 
-| 特性 / Feature | 说明 / Description |
-|---|---|
-| **多引擎统一** / Multi-Engine Unified | 图(Graph)、列存(Column)、向量(Vector)三引擎共享 Being 原语，零拷贝跨引擎查询 / Graph, Column, and Vector engines share the Being primitive with zero-copy cross-engine queries |
-| **DSL 查询语言** / DSL Query Language | 类 GraphQL 语法，支持 Filter、Aggregate、向量相似搜索、BFS/DFS 图遍历 / GraphQL-like syntax supporting Filter, Aggregate, vector similarity search, BFS/DFS graph traversal |
-| **跨引擎嵌套查询** / Cross-Engine Nested Queries | 向量搜索 → 图关系遍历 → 列存属性读取、BFS → 列存聚合等多引擎 pipeline / Vector → Graph → Column, BFS → Column aggregation, and other multi-engine pipelines |
-| **SIMD 加速** / SIMD Acceleration | 列存聚合使用 NEON SIMD (aarch64)，跳过图扫描直接列存求和 / Columnar aggregation uses NEON SIMD (aarch64), skipping graph scans for direct columnar sums |
-| **HNSW 向量索引** / HNSW Vector Index | 教科书级实现，基于 HashMap + 标量距离（教学版），为生产版保留 5–10× 优化空间 / Textbook implementation with HashMap + scalar distance (edu edition), reserving 5–10× optimization headroom for production |
-| **事务与 WAL** / Transaction & WAL | 双缓冲区 WAL + 多引擎原子提交，支持 crash recovery / Dual-buffer WAL + multi-engine atomic commit with crash recovery support |
+| Feature | Description |
+| --- | --- |
+| Multi-Engine Unified | Graph, Column, and Vector engines share the Being primitive with zero-copy cross-engine queries |
+| DSL Query Language | DFS 图遍历 / GraphQL-like syntax supporting Filter, Aggregate, vector similarity search, BFS/DFS graph traversal |
+| Cross-Engine Nested Queries | Vector → Graph → Column, BFS → Column aggregation, and other multi-engine pipelines |
+| SIMD Acceleration | Columnar aggregation uses NEON SIMD (aarch64), skipping graph scans for direct columnar sums |
+| HNSW Vector Index | Textbook implementation with HashMap + scalar distance (edu edition), reserving 5–10× optimization headroom for production |
+| Transaction & WAL | Dual-buffer WAL + multi-engine atomic commit with crash recovery support |
 
 ---
 
-## 架构 / Architecture
+Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -76,14 +79,14 @@ For detailed architecture design, see [`docs/ARCHITECTURE.md`](./docs/ARCHITECTU
 
 ---
 
-## 快速开始 / Quick Start
+Quick Start
 
-### 环境要求 / Prerequisites
+Prerequisites
 
 - **Rust** 1.78+ (Edition 2021)
 - **平台** / **Platform**: Apple M-series (aarch64) / x86_64 Linux / x86_64 Windows
 
-### 构建 / Build
+Build
 
 ```bash
 git clone https://github.com/daoql/daoql-edu.git
@@ -91,7 +94,7 @@ cd daoql-edu
 cargo build --release
 ```
 
-### 运行测试 / Run Tests
+Run Tests
 
 ```bash
 # 全部测试（133 个）/ All tests (133 total)
@@ -101,7 +104,7 @@ cargo test --release
 cargo bench
 ```
 
-### 示例代码 / Example
+Example
 
 ```rust
 use daoql_edu::{DaoQL, Being};
@@ -135,27 +138,25 @@ let result = daoql.query()
 
 ---
 
-## 性能 / Performance
-
-教学版采用标准算法实现（HashMap、标量距离、逐条处理），为生产版保留优化空间：
+Performance
 
 The educational edition uses standard algorithm implementations (HashMap, scalar distance, row-by-row processing), reserving optimization headroom for the production version:
 
-| 操作 / Operation | 教学版 / Edu | 生产版预估 / Production Est. | 对比基准 / Baseline |
-|---|---|---|---|
-| 点查 / Point Query | 0.72 µs | ~0.1 µs | SQLite 1.5 µs |
-| BFS 遍历 / BFS Traversal | 1.13 ms | ~200 µs | NetworkX 2.8 ms |
-| HNSW 向量搜索 / HNSW Search | 299 µs | ~40 µs | Qdrant 363 µs |
-| 列存聚合 / Column Aggregation | 344.7 µs | ~50 µs | Pandas 1.2 ms |
-| 写入 / Write | 1.47 µs/row | ~0.3 µs/row | SQLite 2.1 µs/row |
-| 混合查询 / Mixed Query | 123.7 µs | ~20 µs | Neo4j + PG 2.5 ms |
+| Operation | Edu | Production Est. | Baseline |
+| --- | --- | --- | --- |
+| Point Query | 0.72 µs | ~0.1 µs | SQLite 1.5 µs |
+| BFS Traversal | 1.13 ms | ~200 µs | NetworkX 2.8 ms |
+| HNSW Search | 299 µs | ~40 µs | Qdrant 363 µs |
+| Column Aggregation | 344.7 µs | ~50 µs | Pandas 1.2 ms |
+| Write | 1.47 µs/row | ~0.3 µs/row | SQLite 2.1 µs/row |
+| Mixed Query | 123.7 µs | ~20 µs | Neo4j + PG 2.5 ms |
 
 完整性能报告请参考 [`docs/benchmark_vs_competitor_comparison.md`](./docs/benchmark_vs_competitor_comparison.md)。  
 For the full performance report, see [`docs/benchmark_vs_competitor_comparison.md`](./docs/benchmark_vs_competitor_comparison.md).
 
 ---
 
-## 项目结构 / Project Structure
+Project Structure
 
 ```
 DaoQL-Edu/
@@ -194,27 +195,27 @@ DaoQL-Edu/
 
 ---
 
-## 文档 / Documentation
+Documentation
 
-| 文档 / Document | 内容 / Content |
-|---|---|
-| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | 完整架构设计，含模块关系图、数据结构、算法详述 / Full architecture design with module diagrams, data structures, and algorithm details |
-| [`docs/benchmark_vs_competitor_comparison.md`](./docs/benchmark_vs_competitor_comparison.md) | Criterion 实测数据 vs SQLite / Neo4j / Qdrant / Pandas / Criterion benchmarks vs SQLite / Neo4j / Qdrant / Pandas |
-| [`docs/paradigm/manifesto_draft_zh.md`](./docs/paradigm/manifesto_draft_zh.md) | 论文草稿：多模态数据引擎范式宣言 / Paper draft: Multimodal Data Engine Paradigm Manifesto |
-| [`docs/check-plan.md`](./docs/check-plan.md) | 测试覆盖计划与检查清单 / Test coverage plan and checklist |
-| [`docs/requirements.md`](./docs/requirements.md) | 功能需求与验收标准 / Functional requirements and acceptance criteria |
+| Document | Content |
+| --- | --- |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Full architecture design with module diagrams, data structures, and algorithm details |
+| [`docs/benchmark_vs_competitor_comparison.md`](./docs/benchmark_vs_competitor_comparison.md) | Neo4j / Qdrant / Pandas / Criterion benchmarks vs SQLite / Neo4j / Qdrant / Pandas |
+| [`docs/paradigm/manifesto_draft_zh.md`](./docs/paradigm/manifesto_draft_zh.md) | Paper draft: Multimodal Data Engine Paradigm Manifesto |
+| [`docs/check-plan.md`](./docs/check-plan.md) | Test coverage plan and checklist |
+| [`docs/requirements.md`](./docs/requirements.md) | Functional requirements and acceptance criteria |
 
 ---
 
-## 教学版 vs 生产版 / Edu vs Production
+Edu vs Production
 
-| 维度 / Dimension | DaoQL-Edu (教学版) | DaoQL (生产版) |
-|---|---|---|
-| **目标** / **Goal** | 教学、学习、原理验证 | 工业级生产部署 |
-| **架构** / **Architecture** | 单 Crate，嵌入式 | 分布式，多节点 |
+| Dimension | DaoQL-Edu (教学版) | DaoQL (生产版) |
+| --- | --- | --- |
+| **Goal** | 教学、学习、原理验证 | 工业级生产部署 |
+| **Architecture** | 单 Crate，嵌入式 | 分布式，多节点 |
 | **HNSW** | HashMap + 标量距离 | Vec 索引 + SIMD + Generation Counter |
 | **列存聚合** | 标准循环 | SIMD + 向量化 + 多线程 |
-| **图遍历** | 标准 BFS/DFS | 并行遍历 + 缓存优化 |
+| **图遍历** | DFS | 并行遍历 + 缓存优化 |
 | **写入** | 逐条处理 | 批量分配 + 预写日志优化 |
 | **全文检索** | ❌ 不包含 | ✅ 支持 |
 | **多租户** | ❌ 不包含 | ✅ 支持 |
@@ -222,29 +223,20 @@ DaoQL-Edu/
 
 ---
 
-## 贡献 / Contributing
-
-本项目为教学项目，欢迎提交 Issue 和 PR。所有代码注释和文档必须同时提供中文和英文版本。
+Contributing
 
 This is an educational project. Issues and PRs are welcome. All code comments and documentation must be provided in both Chinese and English.
 
 ---
 
-## 许可证 / License
+License
 
 ```
 Copyright (c) 2026 Zhanbo Li / Atlas Lee <4859345@qq.com>
-SPDX-License-Identifier: BSL-1.1
+SPDX-License-Identifier: AGPL-3.0-or-later
 
-Licensed under the Business Source License, version 1.1 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at:
-
-    https://spdx.org/licenses/BSL-1.1.html
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+This program is licensed under the GNU Affero General Public License v3.0 (or later).
+See the LICENSE file or visit <https://www.gnu.org/licenses/agpl-3.0.html>.
 ```
 
 详见 [`LICENSE`](./LICENSE) 文件。  
@@ -252,6 +244,6 @@ See the [`LICENSE`](./LICENSE) file for details.
 
 ---
 
-## 作者 / Author
+Author
 
 **Zhanbo Li / Atlas Lee** <4859345@qq.com>

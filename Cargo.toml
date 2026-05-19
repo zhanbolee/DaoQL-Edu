@@ -2,7 +2,7 @@
 name = "daoql-edu"
 version = "0.1.0"
 edition = "2021"
-license = "BSL-1.1"
+license = "AGPL-3.0-or-later"
 authors = ["DaoQL Edu Team"]
 description = "DaoQL 教学版 — 多模态数据引擎教育项目"
 repository = "https://github.com/daoql/daoql-edu"

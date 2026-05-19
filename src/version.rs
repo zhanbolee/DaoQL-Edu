@@ -1,28 +1,18 @@
 // Copyright (c) 2026 Zhanbo Li / Atlas Lee <4859345@qq.com>
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Licensed under the Business Source License, version 1.1 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at:
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-//     https://spdx.org/licenses/BSL-1.1.html
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Affero General Public License for more details.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//
-//! Version (Version Management) — implicit MVCC mechanism
-//!
-//! Educational Notes:
-//! - DaoQL-Edu uses implicit MVCC: update = append new version, old version retained
-//! - Each NodeRecord inline-stores tx_begin/tx_end + prev/next_version_offset
-//! - No extra version table needed, version chain pointers inline in graph nodes
-//! - Query support: history: all / last(N) / at(ts) / as_of(ts)
-//!
-//! MVCC core rules (Read Committed):
-//! - Transactions can only see committed versions
-//! - Updates don't overwrite old data, but create new version and set old version's tx_end
-//! - Transaction IDs monotonically increase, used to determine version temporal order
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use crate::being::BeingCore;
 use crate::error::DaoQLError;

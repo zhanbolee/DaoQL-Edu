@@ -1,23 +1,18 @@
 // Copyright (c) 2026 Zhanbo Li / Atlas Lee <4859345@qq.com>
-// SPDX-License-Identifier: BSL-1.1
+// SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Licensed under the Business Source License, version 1.1 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at:
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published
+// by the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
-//     https://spdx.org/licenses/BSL-1.1.html
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Affero General Public License for more details.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//
-//! SIMD Distance Computation
-//!
-//! Educational Notes:
-//! - vectorsearchcoreisdistancecompute（Cosine / L2 / Dot）
-//! - SIMD accelerate：process at once 4-8 Dimension，theoretical speedup 4-8x
-//! - use `wide` crate  f32x8 / f64x4
-//! - remaining tail processed with scalar
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use serde::{Deserialize, Serialize};
 use wide::f32x8;
