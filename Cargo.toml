@@ -1,12 +1,12 @@
 [package]
 name = "daoql-edu"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 license = "Apache-2.0"
 authors = ["DaoQL Edu Team"]
 description = "DaoQL 教学版 — 多模态数据引擎教育项目"
 repository = "https://github.com/zhanbolee/DaoQL-Edu"
-keywords = ["database", "graph", "vector", "columnar", "educational", "embedded", "hnsw", "multimodal"]
+keywords = ["database", "graph", "vector", "columnar", "educational"]
 categories = ["database-implementations", "science"]
 rust-version = "1.78"
 
