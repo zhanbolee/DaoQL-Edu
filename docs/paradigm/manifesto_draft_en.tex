@@ -56,8 +56,10 @@
 % Lists
 \usepackage{enumitem}
 
-% Bibliography
-\usepackage[numbers]{natbib}
+% Bibliography (numbers in square brackets)
+\makeatletter
+\renewcommand{\@biblabel}[1]{[#1]}
+\makeatother
 
 % Footnotes
 \usepackage[bottom]{footmisc}
@@ -114,7 +116,7 @@ trillions of pre-training tokens.
 This assumption underpins the field's central research program: make the
 model larger, train it on more data, and its world model will become
 more accurate, more comprehensive, and more robust. Scaling laws
-{[}1,2{]} are interpreted not merely as empirical regularities of loss
+\cite{kaplan2020,hoffmann2022} are interpreted not merely as empirical regularities of loss
 reduction, but as evidence that world models improve monotonically with
 scale. The implicit reasoning is: if a 175-billion-parameter model
 occasionally hallucinates, then a trillion-parameter model will rarely
@@ -136,7 +138,7 @@ from a probability distribution conditioned on their input and training
 data. When training data contains contradictory information, or when a
 query falls outside the training distribution, the model does not
 ``know'' that it does not know. It outputs plausible-sounding but
-factually incorrect statements with high confidence {[}3{]}. The root
+factually incorrect statements with high confidence \cite{ji2023}. The root
 cause is not insufficient training data or imperfect optimization, but
 the absence of any mechanism by which the model can verify whether a
 generated statement corresponds to an explicit fact at some location in
@@ -149,21 +151,21 @@ principled method for resolving the conflict.
 
 \textbf{Frozen Knowledge.} Once training is complete, the weights are
 frozen. The model's world model is a snapshot of the world at the moment
-of training. Retrieval-Augmented Generation (RAG) {[}4{]} and
-fine-tuning {[}5{]} are techniques that attempt to address this
+of training. Retrieval-Augmented Generation (RAG) \cite{lewis2020} and
+fine-tuning \cite{hu2022} are techniques that attempt to address this
 limitation, but they are grafted onto a frozen weight architecture
 rather than replacing it. RAG injects external documents into the
 context window, yet the model's fundamental world model --- the weights
 --- remains unchanged. Fine-tuning can update weights, but the process
 is computationally expensive, affects the global behavior of the entire
-model, and carries the risk of catastrophic forgetting {[}6{]}. The
+model, and carries the risk of catastrophic forgetting \cite{mccloskey1989}. The
 world model in weights is difficult to update incrementally after
 training.
 
 \textbf{Uninterpretability.} When a large language model produces an
 answer, we cannot inspect its reasoning process. Attention weights
 provide only a coarse post-hoc visualization of which tokens influenced
-which other tokens {[}7{]}, but they do not reveal why the model
+which other tokens \cite{bahdanau2015}, but they do not reveal why the model
 believes a particular fact, nor do they show which facts it considered
 and rejected. If a medical large language model recommends a particular
 treatment, we cannot trace the path from training data to
@@ -176,7 +178,7 @@ lacks an interpretable reasoning trace.
 persistently generates a dangerous false statement --- for instance,
 recommending aspirin to patients with gastric ulcers. Correcting this
 error requires fine-tuning, which affects the entire weight matrix and
-may introduce new errors elsewhere {[}8{]}. There exists no mechanism
+may introduce new errors elsewhere \cite{meng2022}. There exists no mechanism
 for ``surgically'' removing or updating a single belief. Knowledge in
 weights is globally coupled: the representation of ``aspirin'' is
 entangled with representations of ``pain relief,'' ``blood thinning,''
@@ -325,7 +327,7 @@ Models}\label{the-problem-implicit-vs.-explicit-world-models}
 A world model is not merely a collection of facts. A telephone directory
 contains facts (names and numbers), but it is not a world model in the
 sense intended here. A genuine world model must support at least the
-following capabilities {[}9,10{]}:
+following capabilities \cite{ha2018,lecun2022}:
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3529}}
@@ -566,7 +568,7 @@ language models with structured data.
 \subsection{Temporal and Immutable
 Databases}\label{temporal-and-immutable-databases}
 
-\textbf{Datomic} {[}11{]} is the closest precursor to the ideas in this
+\textbf{Datomic} \cite{hickey2012} is the closest precursor to the ideas in this
 paper. Proposed by Rich Hickey in 2012, Datomic's core tenets include:
 (1) time as a central dimension of the data model (EAVT:
 Entity-Attribute-Value-Time); (2) immutable append-only --- no UPDATE or
@@ -586,8 +588,8 @@ entity category can have different specialized behaviors,'' whereas
 DaoQL introduces the separation and cooperation of Def (Class) and Type
 (Interface).
 
-\textbf{Event Store} {[}12{]} and \textbf{Temporal Tables} (SQL:2011)
-{[}13{]} have also made important contributions along the temporal
+\textbf{Event Store} \cite{young2011} and \textbf{Temporal Tables} (SQL:2011)
+\cite{kulkarni2012} have also made important contributions along the temporal
 dimension. Event Store adopts the Event Sourcing pattern, recording
 state changes as immutable event streams. SQL:2011's Temporal Tables
 build support for valid time and transaction time into the relational
@@ -598,7 +600,7 @@ time is not an attribute, but the intrinsic structure of a Being.
 \subsection{Knowledge Representation and Knowledge
 Graphs}\label{knowledge-representation-and-knowledge-graphs}
 
-\textbf{RDF/OWL/SPARQL} {[}14,15,16{]} constitute the technology stack
+\textbf{RDF/OWL/SPARQL} \cite{w3c-rdf2014,w3c-owl2012,w3c-sparql2013} constitute the technology stack
 of the Semantic Web. RDF represents knowledge as triples
 (Subject-Predicate-Object), OWL provides an ontology description
 language, and SPARQL provides a query mechanism. RDFS's \texttt{class}
@@ -606,37 +608,37 @@ and \texttt{type} mechanisms allow simple hierarchical classification,
 but lack the flexibility of the Def/Type separation. Compared to DaoQL,
 RDF/OWL lacks built-in version chains, contract execution, and
 multi-modal unification capabilities. Survey work in the knowledge graph
-domain {[}30{]} further reveals structural gaps in existing knowledge
+domain \cite{hogan2021} further reveals structural gaps in existing knowledge
 representation systems regarding dynamic evolution and multi-modal
 unification.
 
-\textbf{TypeDB} {[}17{]} is a typed hyper-relational knowledge graph
+\textbf{TypeDB} \cite{ioannou2023} is a typed hyper-relational knowledge graph
 database. TypeDB supports type inheritance, constraint checking, and
 rule-based reasoning; its type system is stricter than that of RDF/OWL.
 However, TypeDB's type inheritance is a static schema definition, does
 not support runtime Def/Type cooperative evolution, and does not embed
 contracts into the storage engine's write path.
 
-\textbf{Property Graph} (e.g., Neo4j {[}18{]}, GQL {[}19{]}) organizes
+\textbf{Property Graph} (e.g., Neo4j \cite{webber2015}, GQL \cite{francis2024}) organizes
 graph data using labels and properties. Property Graph's Label is
 analogous to DaoQL's Type, but a Label has no behavioral semantics ---
 it cannot define contracts or constraints. Property Graph also lacks
 immutable version chains and cross-modal query capabilities. A survey of
-graph database models {[}32{]} notes that existing graph databases
+graph database models \cite{angles2008} notes that existing graph databases
 exhibit fundamental limitations in type systems and behavioral
 semantics.
 
 \subsection{Large Language Models and Structured
 Data}\label{large-language-models-and-structured-data}
 
-\textbf{GraphRAG} {[}20{]}, proposed by Microsoft Research, is
+\textbf{GraphRAG} \cite{edge2024}, proposed by Microsoft Research, is
 representative work combining LLMs with knowledge graphs. GraphRAG
 automatically extracts entity-relation triples from unstructured text,
 constructs a knowledge graph, and then retrieves relevant sub-graphs or
 community structures to enhance the LLM's generation when answering
-queries. LightRAG {[}21{]} optimizes indexing and retrieval efficiency
+queries. LightRAG \cite{guo2024} optimizes indexing and retrieval efficiency
 on this basis, adopting a dual-tier retrieval system. FastGraphRAG
-{[}22{]} further accelerates graph traversal using personalized
+\cite{fastgraphrag2024} further accelerates graph traversal using personalized
 PageRank.
 
 The core paradigm of GraphRAG and its variants is ``build graphs from
@@ -646,7 +648,7 @@ graph is not a tool to assist the LLM, but the \textbf{primary storage
 of the world model}. The LLM is merely a reasoning engine that queries
 and operates upon this world model.
 
-\textbf{MemGPT} {[}23{]}, proposed by UC Berkeley, applies the virtual
+\textbf{MemGPT} \cite{packer2023}, proposed by UC Berkeley, applies the virtual
 memory management ideas of operating systems to LLMs. MemGPT enables the
 LLM to autonomously manage its memory through hierarchical storage (core
 memory, recall storage, archival storage) and explicit function calls.
@@ -654,7 +656,7 @@ MemGPT solves the problem of limited LLM context windows, but its memory
 management remains at the level of text chunks, lacking structured
 semantics for entities, relations, and versions.
 
-\textbf{MCP (Model Context Protocol)} {[}24{]} is an open protocol aimed
+\textbf{MCP (Model Context Protocol)} \cite{anthropic2025} is an open protocol aimed
 at standardizing interactions between LLMs and external data sources,
 tools, and services. MCP operates at the protocol layer; DaoQL operates
 at the storage layer --- the two are complementary rather than
@@ -664,12 +666,12 @@ structured memory backend.
 \subsection{Neuro-Symbolic
 Integration}\label{neuro-symbolic-integration}
 
-\textbf{Neuro-symbolic AI} {[}25{]} is dedicated to combining the
+\textbf{Neuro-symbolic AI} \cite{garcez2023} is dedicated to combining the
 perceptual capabilities of neural networks with the reasoning
 capabilities of symbolic systems. Early work such as Neural Theorem
-Provers {[}26{]} and Logic Tensor Networks {[}27{]} attempted to embed
+Provers \cite{rocktaschel2017} and Logic Tensor Networks \cite{serafini2016} attempted to embed
 logical rules into neural networks. Recent work such as AlphaProof
-{[}28{]} demonstrates the potential of neuro-symbolic integration in
+\cite{alphaproof2024} demonstrates the potential of neuro-symbolic integration in
 mathematical reasoning. DaoQL can be viewed as the ``symbolic-side''
 infrastructure in a neuro-symbolic architecture --- providing the LLM
 (the neural side) with an explicit, verifiable structured knowledge
@@ -2052,106 +2054,106 @@ daoql-discuss@daoql.io
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\section{References}\label{references}
+\begin{thebibliography}{99}
 
-{[}1{]} Kaplan, J., et al.~``Scaling laws for neural language models.''
-\emph{arXiv preprint arXiv:2001.08361} (2020).
+\bibitem{kaplan2020} J.~Kaplan et al., ``Scaling laws for neural language models,''
+  \emph{arXiv preprint arXiv:2001.08361}, 2020.
 
-{[}2{]} Hoffmann, J., et al.~``Training compute-optimal large language
-models.'' \emph{arXiv preprint arXiv:2203.15556} (2022).
+\bibitem{hoffmann2022} J.~Hoffmann et al., ``Training compute-optimal large language
+  models,'' \emph{arXiv preprint arXiv:2203.15556}, 2022.
 
-{[}3{]} Ji, Z., et al.~``Survey of hallucination in natural language
-generation.'' \emph{ACM Computing Surveys} 55.12 (2023): 1-38.
+\bibitem{ji2023} Z.~Ji et al., ``Survey of hallucination in natural language
+  generation,'' \emph{ACM Computing Surveys}, vol.~55, no.~12, pp.~1--38, 2023.
 
-{[}4{]} Lewis, P., et al.~``Retrieval-augmented generation for
-knowledge-intensive NLP tasks.'' \emph{Advances in Neural Information
-Processing Systems} 33 (2020): 9459-9474.
+\bibitem{lewis2020} P.~Lewis et al., ``Retrieval-augmented generation for
+  knowledge-intensive NLP tasks,'' in \emph{NeurIPS}, vol.~33, pp.~9459--9474, 2020.
 
-{[}5{]} Hu, E. J., et al.~``LoRA: Low-rank adaptation of large language
-models.'' \emph{ICLR} (2022).
+\bibitem{hu2022} E.J.~Hu et al., ``LoRA: Low-rank adaptation of large language
+  models,'' in \emph{ICLR}, 2022.
 
-{[}6{]} McCloskey, M., \& Cohen, N. J. ``Catastrophic interference in
-connectionist networks: The sequential learning problem.''
-\emph{Psychology of Learning and Motivation} 24 (1989): 109-165.
+\bibitem{mccloskey1989} M.~McCloskey and N.J.~Cohen, ``Catastrophic interference in
+  connectionist networks: The sequential learning problem,''
+  \emph{Psychology of Learning and Motivation}, vol.~24, pp.~109--165, 1989.
 
-{[}7{]} Bahdanau, D., Cho, K., \& Bengio, Y. ``Neural machine
-translation by jointly learning to align and translate.'' \emph{ICLR}
-(2015).
+\bibitem{bahdanau2015} D.~Bahdanau, K.~Cho, and Y.~Bengio, ``Neural machine
+  translation by jointly learning to align and translate,'' in \emph{ICLR}, 2015.
 
-{[}8{]} Meng, K., et al.~``Locating and editing factual associations in
-GPT.'' \emph{NeurIPS} (2022).
+\bibitem{meng2022} K.~Meng et al., ``Locating and editing factual associations in
+  GPT,'' in \emph{NeurIPS}, 2022.
 
-{[}9{]} Ha, D., \& Schmidhuber, J. ``World models.'' \emph{arXiv
-preprint arXiv:1803.10122} (2018).
+\bibitem{ha2018} D.~Ha and J.~Schmidhuber, ``World models,''
+  \emph{arXiv preprint arXiv:1803.10122}, 2018.
 
-{[}10{]} LeCun, Y. ``A path towards autonomous machine intelligence.''
-\emph{Open Review} (2022).
+\bibitem{lecun2022} Y.~LeCun, ``A path towards autonomous machine intelligence,''
+  \emph{Open Review}, 2022.
 
-{[}11{]} Hickey, R. ``The Datomic database.'' Cognitect (2012).
+\bibitem{hickey2012} R.~Hickey, ``The Datomic database,'' Cognitect, 2012.
 
-{[}12{]} Young, G. ``Event Store: A domain-centric event database.''
-Event Store Ltd (2011).
+\bibitem{young2011} G.~Young, ``Event Store: A domain-centric event database,''
+  Event Store Ltd, 2011.
 
-{[}13{]} Kulkarni, K. G., \& Michels, J. E. ``Temporal features in
-SQL:2011.'' \emph{ACM SIGMOD Record} 41.3 (2012): 34-43.
+\bibitem{kulkarni2012} K.G.~Kulkarni and J.E.~Michels, ``Temporal features in
+  SQL:2011,'' \emph{ACM SIGMOD Record}, vol.~41, no.~3, pp.~34--43, 2012.
 
-{[}14{]} W3C. ``RDF 1.1 Concepts and Abstract Syntax.'' W3C
-Recommendation (2014).
+\bibitem{w3c-rdf2014} W3C, ``RDF 1.1 Concepts and Abstract Syntax,''
+  W3C Recommendation, 2014.
 
-{[}15{]} W3C. ``OWL 2 Web Ontology Language Document Overview.'' W3C
-Recommendation (2012).
+\bibitem{w3c-owl2012} W3C, ``OWL 2 Web Ontology Language Document Overview,''
+  W3C Recommendation, 2012.
 
-{[}16{]} W3C. ``SPARQL 1.1 Query Language.'' W3C Recommendation (2013).
+\bibitem{w3c-sparql2013} W3C, ``SPARQL 1.1 Query Language,''
+  W3C Recommendation, 2013.
 
-{[}17{]} Ioannou, E., et al.~``TypeDB: A Polymorphic Database.''
-\emph{arXiv preprint arXiv:2309.15021} (2023).
+\bibitem{ioannou2023} E.~Ioannou et al., ``TypeDB: A Polymorphic Database,''
+  \emph{arXiv preprint arXiv:2309.15021}, 2023.
 
-{[}18{]} Webber, J. ``Graph Databases: New Opportunities for Connected
-Data.'' \emph{O'Reilly Media} (2015).
+\bibitem{webber2015} J.~Webber, ``Graph Databases: New Opportunities for Connected
+  Data,'' \emph{O'Reilly Media}, 2015.
 
-{[}19{]} Francis, N., et al.~``GQL: A query language for property
-graphs.'' \emph{ACM SIGMOD} (2024).
+\bibitem{francis2024} N.~Francis et al., ``GQL: A query language for property
+  graphs,'' in \emph{ACM SIGMOD}, 2024.
 
-{[}20{]} Edge, D., et al.~``From Local to Global: A Graph RAG Approach
-to Query-Focused Summarization.'' \emph{arXiv preprint arXiv:2404.16130}
-(2024).
+\bibitem{edge2024} D.~Edge et al., ``From Local to Global: A Graph RAG Approach
+  to Query-Focused Summarization,''
+  \emph{arXiv preprint arXiv:2404.16130}, 2024.
 
-{[}21{]} Guo, Z., et al.~``LightRAG: Simple and Fast Retrieval-Augmented
-Generation.'' \emph{arXiv preprint arXiv:2410.05779} (2024).
+\bibitem{guo2024} Z.~Guo et al., ``LightRAG: Simple and Fast Retrieval-Augmented
+  Generation,'' \emph{arXiv preprint arXiv:2410.05779}, 2024.
 
-{[}22{]} FastGraphRAG.AI. ``FastGraphRAG: Accelerated knowledge
-intensive reasoning.'' (2024).
+\bibitem{fastgraphrag2024} FastGraphRAG.AI, ``FastGraphRAG: Accelerated knowledge
+  intensive reasoning,'' 2024.
 
-{[}23{]} Packer, C., et al.~``MemGPT: Towards LLMs as Operating
-Systems.'' \emph{arXiv preprint arXiv:2310.08560} (2023).
+\bibitem{packer2023} C.~Packer et al., ``MemGPT: Towards LLMs as Operating
+  Systems,'' \emph{arXiv preprint arXiv:2310.08560}, 2023.
 
-{[}24{]} Anthropic. ``Model Context Protocol Specification.'' (2025).
+\bibitem{anthropic2025} Anthropic, ``Model Context Protocol Specification,'' 2025.
 
-{[}25{]} Garcez, A. S., \& Lamb, L. C. ``Neurosymbolic AI: The 3rd
-Wave.'' \emph{Artificial Intelligence Review} (2023).
+\bibitem{garcez2023} A.S.~Garcez and L.C.~Lamb, ``Neurosymbolic AI: The 3rd
+  Wave,'' \emph{Artificial Intelligence Review}, 2023.
 
-{[}26{]} Rocktäschel, T., \& Riedel, S. ``End-to-end differentiable
-proving.'' \emph{NeurIPS} (2017).
+\bibitem{rocktaschel2017} T.~Rockt\"{a}schel and S.~Riedel, ``End-to-end differentiable
+  proving,'' in \emph{NeurIPS}, 2017.
 
-{[}27{]} Serafini, L., \& Garcez, A. S. ``Logic Tensor Networks: Deep
-Learning and Logical Reasoning from Data and Knowledge.'' \emph{arXiv
-preprint arXiv:1606.04422} (2016).
+\bibitem{serafini2016} L.~Serafini and A.S.~Garcez, ``Logic Tensor Networks: Deep
+  Learning and Logical Reasoning from Data and Knowledge,''
+  \emph{arXiv preprint arXiv:1606.04422}, 2016.
 
-{[}28{]} AlphaProof Team. ``AI achieves silver-medal standard solving
-international mathematical olympiad problems.'' \emph{DeepMind Blog}
-(2024).
+\bibitem{alphaproof2024} AlphaProof Team, ``AI achieves silver-medal standard solving
+  international mathematical olympiad problems,'' \emph{DeepMind Blog}, 2024.
 
-{[}29{]} Codd, E. F. ``A relational model of data for large shared data
-banks.'' \emph{Communications of the ACM} 13.6 (1970): 377-387.
+\bibitem{codd1970} E.F.~Codd, ``A relational model of data for large shared data
+  banks,'' \emph{Communications of the ACM}, vol.~13, no.~6, pp.~377--387, 1970.
 
-{[}30{]} Hogan, A., et al.~``Knowledge graphs.'' \emph{ACM Computing
-Surveys} 54.4 (2021): 1-37.
+\bibitem{hogan2021} A.~Hogan et al., ``Knowledge graphs,''
+  \emph{ACM Computing Surveys}, vol.~54, no.~4, pp.~1--37, 2021.
 
-{[}31{]} Guarino, N. ``Formal ontology, conceptual analysis and
-knowledge representation.'' \emph{International Journal of
-Human-Computer Studies} 43.5-6 (1995): 625-640.
+\bibitem{guarino1995} N.~Guarino, ``Formal ontology, conceptual analysis and
+  knowledge representation,'' \emph{International Journal of Human-Computer
+  Studies}, vol.~43, no.~5-6, pp.~625--640, 1995.
 
-{[}32{]} Angles, R., \& Gutierrez, C. ``Survey of graph database
-models.'' \emph{ACM Computing Surveys} 40.1 (2008): 1-39.
+\bibitem{angles2008} R.~Angles and C.~Gutierrez, ``Survey of graph database
+  models,'' \emph{ACM Computing Surveys}, vol.~40, no.~1, pp.~1--39, 2008.
+
+\end{thebibliography}
 
 \end{document}
